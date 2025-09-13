@@ -1,0 +1,3 @@
+
+// This file has been moved to /(platform)/platform/dashboard/page.tsx
+// to avoid route conflicts. Do not add any default export here.

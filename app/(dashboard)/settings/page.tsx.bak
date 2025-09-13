@@ -1,0 +1,190 @@
+
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Settings, 
+  Church, 
+  Users, 
+  Shield, 
+  Bell,
+  Palette,
+  Database,
+  Mail
+} from 'lucide-react'
+
+export default async function SettingsPage() {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user) {
+    redirect('/auth/signin')
+  }
+
+  if (!['SUPER_ADMIN', 'ADMIN_IGLESIA'].includes(session.user.role)) {
+    redirect('/dashboard')
+  }
+
+  const settingsModules = [
+    {
+      title: 'Información de la Iglesia',
+      description: 'Actualizar nombre, dirección, contacto y logo de la iglesia',
+      icon: Church,
+      status: 'available',
+      color: 'blue'
+    },
+    {
+      title: 'Gestión de Usuarios',
+      description: 'Administrar roles, permisos y accesos de usuarios',
+      icon: Users,
+      status: 'coming-soon',
+      color: 'green'
+    },
+    {
+      title: 'Seguridad',
+      description: 'Configurar autenticación de dos factores y políticas de seguridad',
+      icon: Shield,
+      status: 'coming-soon',
+      color: 'red'
+    },
+    {
+      title: 'Notificaciones',
+      description: 'Configurar alertas por email, SMS y notificaciones push',
+      icon: Bell,
+      status: 'coming-soon',
+      color: 'yellow'
+    },
+    {
+      title: 'Personalización',
+      description: 'Personalizar colores, temas y apariencia del sistema',
+      icon: Palette,
+      status: 'coming-soon',
+      color: 'purple'
+    },
+    {
+      title: 'Base de Datos',
+      description: 'Respaldos automáticos, importación y exportación de datos',
+      icon: Database,
+      status: 'coming-soon',
+      color: 'indigo'
+    },
+    {
+      title: 'Integraciones',
+      description: 'Conectar con servicios externos como Mailchimp, Zoom, etc.',
+      icon: Mail,
+      status: 'coming-soon',
+      color: 'pink'
+    }
+  ]
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Configuración del Sistema</h1>
+          <p className="text-muted-foreground">
+            Administra la configuración y preferencias de tu iglesia
+          </p>
+        </div>
+      </div>
+
+      {/* Current Church Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Church className="h-5 w-5" />
+            Información Actual de la Iglesia
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Nombre de la Iglesia</label>
+              <p className="text-lg">{session.user.church?.name || 'No especificado'}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <p>{session.user.church?.email || 'No especificado'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Teléfono</label>
+                <p>{session.user.church?.phone || 'No especificado'}</p>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Dirección</label>
+              <p>{session.user.church?.address || 'No especificada'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Settings Modules */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {settingsModules.map((module, index) => {
+          const Icon = module.icon
+          const isAvailable = module.status === 'available'
+          
+          return (
+            <Card key={index} className={`hover:shadow-lg transition-shadow ${isAvailable ? 'cursor-pointer' : 'opacity-70'}`}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <Icon className={`h-8 w-8 text-${module.color}-500`} />
+                  <Badge variant={isAvailable ? 'default' : 'secondary'}>
+                    {isAvailable ? 'Disponible' : 'Próximamente'}
+                  </Badge>
+                </div>
+                <CardTitle className="text-lg">{module.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {module.description}
+                </p>
+                
+                <Button size="sm" variant="outline" className="w-full" disabled>
+                  {isAvailable ? 'Configurar - Próximamente' : 'Próximamente en Fase 2'}
+                </Button>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Phase 2 Information */}
+      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-blue-600" />
+            Próximas Funcionalidades - Fase 2
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <h4 className="font-semibold mb-2">Configuración Avanzada</h4>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Gestión completa de roles y permisos</li>
+                <li>• Configuración de notificaciones automáticas</li>
+                <li>• Personalización de temas y colores</li>
+                <li>• Respaldos automáticos de base de datos</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Integraciones</h4>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Integración con servicios de email</li>
+                <li>• Conectores para redes sociales</li>
+                <li>• APIs para aplicaciones externas</li>
+                <li>• Sincronización con calendarios</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
