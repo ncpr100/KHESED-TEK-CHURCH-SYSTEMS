@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
 
     // Obtener nombres de categorías
     const categoriesWithData = await Promise.all(
-      donationsByCategory.map(async (item) => {
+      donationsByCategory.map(async (item: any) => {
         const category = await db.donationCategory.findUnique({
           where: { id: item.categoryId },
           select: { name: true }
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
 
     // Obtener nombres de métodos de pago
     const paymentMethodsWithData = await Promise.all(
-      donationsByPaymentMethod.map(async (item) => {
+      donationsByPaymentMethod.map(async (item: any) => {
         const paymentMethod = await db.paymentMethod.findUnique({
           where: { id: item.paymentMethodId },
           select: { name: true }
@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
     })
 
     const topDonors = await Promise.all(
-      topDonorsQuery.map(async (item) => {
+      topDonorsQuery.map(async (item: any) => {
         const member = await db.member.findUnique({
           where: { id: item.memberId! },
           select: { firstName: true, lastName: true }

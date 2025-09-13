@@ -41,7 +41,7 @@ async function getRecipients(targetGroup: string, churchId: string) {
         where: { churchId, isActive: true },
         select: { firstName: true, lastName: true, phone: true, email: true }
       })
-      recipients = allMembers.map(m => ({
+      recipients = allMembers.map((m: any) => ({
         name: `${m.firstName} ${m.lastName}`,
         phone: m.phone || undefined,
         email: m.email || undefined
@@ -53,7 +53,7 @@ async function getRecipients(targetGroup: string, churchId: string) {
         where: { churchId, isActive: true },
         select: { firstName: true, lastName: true, phone: true, email: true }
       })
-      recipients = volunteers.map(v => ({
+      recipients = volunteers.map((v: any) => ({
         name: `${v.firstName} ${v.lastName}`,
         phone: v.phone || undefined,
         email: v.email || undefined
@@ -69,7 +69,7 @@ async function getRecipients(targetGroup: string, churchId: string) {
         },
         include: { member: true }
       })
-      recipients = leaders.map(l => ({
+      recipients = leaders.map((l: any) => ({
         name: l.member ? `${l.member.firstName} ${l.member.lastName}` : l.name || 'Usuario',
         phone: l.member?.phone || undefined,
         email: l.email
