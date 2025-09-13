@@ -4,11 +4,11 @@
 ## PHASE 1: SaaS Revenue Model (Month 1-2)
 
 ### Subscription Tiers
-- **BÁSICO**: $149.00 USD/month (Target: 175 churches)
-- **PROFESIONAL**: $299.00 USD/month (Target: 800 churches)  
-- **ENTERPRISE**: $599.00 USD/month (Target: 25 churches)
+- **BÁSICO**: $50,000 COP/month (Target: 100 churches)
+- **PROFESIONAL**: $120,000 COP/month (Target: 50 churches)  
+- **ENTERPRISE**: $300,000 COP/month (Target: 10 churches)
 
-**Revenue Projection Year 1**: $280,250 USD/month ($3,363,000 USD/year)
+**Revenue Projection Year 1**: $22,800,000 COP/month ($547,200 USD/year)
 
 ## PHASE 2: Payment Processing Revenue (Month 2-4)
 

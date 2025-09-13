@@ -1,0 +1,2170 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/khesed_tek_church_systems/app/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Church {
+  id                        String                     @id @default(cuid())
+  name                      String
+  address                   String?
+  phone                     String?
+  email                     String?
+  website                   String?
+  founded                   DateTime?
+  logo                      String?
+  description               String?
+  isActive                  Boolean                    @default(true)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  analyticsCache            AnalyticsCache[]
+  analyticsDashboards       AnalyticsDashboard[]
+  automationExecutions      AutomationExecution[]
+  automationRules           AutomationRule[]
+  automations               Automation[]
+  checkIns                  CheckIn[]
+  childrenCheckIns          ChildCheckIn[]
+  subscription              ChurchSubscription?
+  churchTheme               ChurchTheme?
+  communicationTemplates    CommunicationTemplate[]
+  communications            Communication[]
+  customReports             CustomReport[]
+  dashboardWidgets          DashboardWidget[]
+  donationCampaigns         DonationCampaign[]
+  donationCategories        DonationCategory[]
+  donations                 Donation[]
+  eventResourceReservations EventResourceReservation[]
+  eventResources            EventResource[]
+  events                    Event[]
+  integrationConfigs        IntegrationConfig[]
+  kpiMetrics                KPIMetric[]
+  marketingCampaignPosts    MarketingCampaignPost[]
+  marketingCampaigns        MarketingCampaign[]
+  members                   Member[]
+  ministries                Ministry[]
+  notificationTemplates     NotificationTemplate[]     @relation("ChurchNotificationTemplates")
+  notifications             Notification[]
+  onlinePayments            OnlinePayment[]
+  paymentGatewayConfigs     PaymentGatewayConfig[]
+  paymentMethods            PaymentMethod[]
+  prayerApprovals           PrayerApproval[]
+  prayerCategories          PrayerCategory[]
+  prayerContacts            PrayerContact[]
+  prayerForms               PrayerForm[]
+  prayerQRCodes             PrayerQRCode[]
+  prayerRequests            PrayerRequest[]
+  prayerResponseTemplates   PrayerResponseTemplate[]
+  pushNotificationLogs      PushNotificationLog[]
+  pushSubscriptions         PushSubscription[]
+  reportExecutions          ReportExecution[]
+  reportSchedules           ReportSchedule[]
+  roles                     Role[]
+  sermons                   Sermon[]
+  socialMediaAccounts       SocialMediaAccount[]
+  socialMediaMetrics        SocialMediaMetrics[]
+  socialMediaPosts          SocialMediaPost[]
+  themePreferences          UserThemePreference[]
+  users                     User[]
+  visitorsFollowUp          VisitorFollowUp[]
+  volunteers                Volunteer[]
+  websites                  Website[]
+  websiteRequests           WebsiteRequest[]           @relation("ChurchWebsiteRequests")
+  ministryGapAnalyses       MinistryGapAnalysis[]
+  prayerTestimonies         PrayerTestimony[]
+  testimonyForms            TestimonyForm[]
+  testimonyQRCodes          TestimonyQRCode[]
+  invoices                  Invoice[]
+  tenantCredentials         TenantCredentials?
+  qualificationSettings     ChurchQualificationSettings?
+
+  @@map("churches")
+}
+
+// Church-specific qualification settings for volunteer and leadership candidates
+model ChurchQualificationSettings {
+  id                        String   @id @default(cuid())
+  churchId                  String   @unique
+  
+  // Volunteer Candidate Criteria
+  volunteerMinMembershipDays Int      @default(0)      // Minimum days as member to be volunteer candidate
+  volunteerRequireActiveStatus Boolean @default(true)   // Must be active member
+  volunteerRequireSpiritualAssessment Boolean @default(false) // Must have completed spiritual gifts assessment
+  volunteerMinSpiritualScore Int      @default(0)      // Minimum spiritual maturity score (0-100)
+  
+  // Leadership Ready Criteria  
+  leadershipMinMembershipDays Int     @default(365)    // Minimum days as member (default 1 year)
+  leadershipRequireVolunteerExp Boolean @default(false) // Must have volunteer experience first
+  leadershipMinVolunteerDays Int      @default(0)      // Minimum days as volunteer before leadership
+  leadershipRequireTraining Boolean   @default(false)  // Must complete leadership training
+  leadershipMinSpiritualScore Int     @default(70)     // Minimum spiritual maturity score for leadership
+  leadershipMinLeadershipScore Int    @default(60)     // Minimum leadership aptitude score
+  
+  // Advanced Assessment Integration
+  enableSpiritualMaturityScoring Boolean @default(true) // Use spiritual maturity in qualification
+  enableLeadershipAptitudeScoring Boolean @default(true) // Use leadership aptitude in qualification
+  enableMinistryPassionMatching Boolean @default(true)  // Use ministry passion in recommendations
+  
+  // Custom Qualification Weights (for scoring)
+  spiritualGiftsWeight    Float @default(0.4)  // 40% weight for spiritual gifts match
+  availabilityWeight      Float @default(0.25) // 25% weight for availability
+  experienceWeight        Float @default(0.15) // 15% weight for experience
+  ministryPassionWeight   Float @default(0.1)  // 10% weight for ministry passion
+  activityWeight          Float @default(0.1)  // 10% weight for recent activity
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  church    Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("church_qualification_settings")
+}
+
+model Ministry {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  churchId    String
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  members     Member[]
+  church      Church      @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  volunteers  Volunteer[]
+  volunteerRecommendations VolunteerRecommendation[]
+  gapAnalyses MinistryGapAnalysis[]
+
+  @@map("ministries")
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  description     String?
+  resource        String
+  action          String
+  conditions      String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model Role {
+  id              String              @id @default(cuid())
+  name            String
+  description     String?
+  churchId        String?
+  isSystem        Boolean             @default(false)
+  isActive        Boolean             @default(true)
+  priority        Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  rolePermissions RolePermission[]
+  church          Church?             @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  userRoles       UserRole_Advanced[]
+
+  @@unique([name, churchId])
+  @@map("roles")
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  conditions   String?
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String     @id @default(cuid())
+  userId       String
+  permissionId String
+  granted      Boolean    @default(true)
+  conditions   String?
+  expiresAt    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@map("user_permissions")
+}
+
+model UserRole_Advanced {
+  id        String    @id @default(cuid())
+  userId    String
+  roleId    String
+  isActive  Boolean   @default(true)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles_advanced")
+}
+
+model User {
+  id                         String                  @id @default(cuid())
+  name                       String?
+  email                      String                  @unique
+  emailVerified              DateTime?
+  image                      String?
+  password                   String?
+  role                       UserRole                @default(MIEMBRO)
+  churchId                   String?
+  isActive                   Boolean                 @default(true)
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+  accounts                   Account[]
+  createdAutomationRules     AutomationRule[]
+  createdAutomationTemplates AutomationTemplate[]
+  member                     Member?
+  notificationPreferences    NotificationPreference? @relation("UserNotificationPreferences")
+  createdNotifications       Notification[]          @relation("NotificationCreator")
+  prayerApprovals            PrayerApproval[]
+  pushNotificationLogs       PushNotificationLog[]
+  pushSubscriptions          PushSubscription[]
+  sessions                   Session[]
+  userPermissions            UserPermission[]
+  userRoles                  UserRole_Advanced[]
+  themePreference            UserThemePreference?
+  church                     Church?                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  assignedFollowUps          VisitorFollowUp[]
+  assignedWebsiteRequests    WebsiteRequest[]        @relation("AssignedWebsiteRequests")
+  testimonyApprovals         PrayerTestimony[]
+  createdInvoices            Invoice[]               @relation("InvoiceCreator")
+  verifiedPayments           InvoicePayment[]        @relation("PaymentVerifier")
+  sentCommunications         InvoiceCommunication[]  @relation("CommunicationSender")
+  createdCredentials         TenantCredentials[]     @relation("CredentialCreator")
+
+  @@map("users")
+}
+
+model Member {
+  id             String      @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  state          String?
+  zipCode        String?
+  birthDate      DateTime?
+  baptismDate    DateTime?
+  membershipDate DateTime?
+  maritalStatus  String?
+  gender         String?
+  occupation     String?
+  photo          String?
+  notes          String?
+  churchId       String
+  userId         String?     @unique
+  ministryId     String?
+  isActive       Boolean     @default(true)
+  
+  // Enhanced CRM Fields
+  spiritualGifts        Json?           // Array of spiritual gifts
+  secondaryGifts        Json?           // Secondary spiritual gifts
+  spiritualCalling      String?         // Personal calling description
+  ministryPassion       Json?           // Array of ministry interests
+  experienceLevel       Int?            @default(1) // 1-10 scale
+  availabilityScore     Float?          @default(0.0) // Calculated availability
+  leadershipReadiness   Int?            @default(1) // 1-10 scale
+  skillsMatrix          Json?           // Technical and interpersonal skills
+  personalityType       String?         // Team vs Solo preference
+  transportationOwned   Boolean?        @default(false)
+  childcareAvailable    Boolean?        @default(false)
+  backgroundCheckDate   DateTime?       // Background check completion
+  emergencyContact      String?         // Emergency contact info
+  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  donations      Donation[]
+  church         Church      @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  ministry       Ministry?   @relation(fields: [ministryId], references: [id])
+  user           User?       @relation(fields: [userId], references: [id])
+  volunteers     Volunteer[]
+  spiritualProfile    MemberSpiritualProfile?
+  availabilityMatrix  AvailabilityMatrix?
+  volunteerRecommendations VolunteerRecommendation[]
+
+  @@map("members")
+}
+
+model Sermon {
+  id        String    @id @default(cuid())
+  title     String
+  content   String?
+  outline   String?
+  scripture String?
+  date      DateTime?
+  speaker   String?
+  churchId  String
+  isPublic  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  church    Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("sermons")
+}
+
+model Event {
+  id                   String                     @id @default(cuid())
+  title                String
+  description          String?
+  startDate            DateTime
+  endDate              DateTime?
+  location             String?
+  churchId             String
+  isPublic             Boolean                    @default(true)
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  checkIns             CheckIn[]
+  childrenCheckIns     ChildCheckIn[]
+  resourceReservations EventResourceReservation[]
+  church               Church                     @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  volunteerAssignments VolunteerAssignment[]
+  volunteerRecommendations VolunteerRecommendation[]
+
+  @@map("events")
+}
+
+model Volunteer {
+  id           String                @id @default(cuid())
+  memberId     String?
+  firstName    String
+  lastName     String
+  email        String?
+  phone        String?
+  skills       String?
+  availability String?
+  ministryId   String?
+  churchId     String
+  isActive     Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  assignments  VolunteerAssignment[]
+  church       Church                @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  member       Member?               @relation(fields: [memberId], references: [id])
+  ministry     Ministry?             @relation(fields: [ministryId], references: [id])
+  engagementScore VolunteerEngagementScore?
+
+  @@map("volunteers")
+}
+
+model VolunteerAssignment {
+  id          String    @id @default(cuid())
+  volunteerId String
+  eventId     String?
+  title       String
+  description String?
+  date        DateTime
+  startTime   String
+  endTime     String
+  status      String    @default("ASIGNADO")
+  notes       String?
+  churchId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  event       Event?    @relation(fields: [eventId], references: [id])
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@map("volunteer_assignments")
+}
+
+model CheckIn {
+  id              String            @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String?
+  isFirstTime     Boolean           @default(false)
+  visitReason     String?
+  prayerRequest   String?
+  qrCode          String?           @unique
+  eventId         String?
+  churchId        String
+  checkedInAt     DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+  
+  // Enhanced visitor tracking
+  visitorType     String?           // "FIRST_TIME", "RETURN", "MINISTRY_INTEREST", "PRAYER_REQUEST"
+  ministryInterest String[]         @default([]) // Array of interested ministries
+  ageGroup        String?           // "CHILDREN", "YOUTH", "ADULTS", "SENIORS"
+  familyStatus    String?           // "SINGLE", "MARRIED", "FAMILY_WITH_KIDS"
+  referredBy      String?           // How they heard about church
+  followUpFormId  String?           // Link to submitted follow-up form
+  automationTriggered Boolean       @default(false)
+  lastContactDate DateTime?
+  engagementScore Int              @default(0) // 0-100 engagement tracking
+  
+  church          Church            @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  event           Event?            @relation(fields: [eventId], references: [id])
+  followUps       VisitorFollowUp[]
+
+  @@map("check_ins")
+}
+
+model VisitorFollowUp {
+  id            String    @id @default(cuid())
+  checkInId     String
+  followUpType  String
+  status        String    @default("PENDIENTE")
+  scheduledAt   DateTime?
+  completedAt   DateTime?
+  notes         String?
+  assignedTo    String?
+  churchId      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Enhanced automation fields
+  automationRuleId String?    // Link to automation that created this follow-up
+  priority      String    @default("MEDIUM") // "HIGH", "MEDIUM", "LOW"
+  category      String?   // "WELCOME", "MINISTRY_CONNECTION", "PRAYER", "VOLUNTEER"
+  touchSequence Int?      // Which touch in sequence (1-5 for first-time visitors)
+  responseReceived Boolean @default(false)
+  responseData  Json?     // Store form responses or interaction data
+  nextActionDue DateTime? // When next action should happen
+  ministryMatch String?   // Matched ministry based on interests
+  
+  assignedUser  User?     @relation(fields: [assignedTo], references: [id])
+  checkIn       CheckIn   @relation(fields: [checkInId], references: [id], onDelete: Cascade)
+  church        Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("visitor_follow_ups")
+}
+
+model ChildCheckIn {
+  id               String    @id @default(cuid())
+  childName        String
+  childAge         Int?
+  parentName       String
+  parentPhone      String
+  parentEmail      String?
+  emergencyContact String?
+  emergencyPhone   String?
+  allergies        String?
+  specialNeeds     String?
+  qrCode           String    @unique
+  checkedIn        Boolean   @default(true)
+  checkedInAt      DateTime  @default(now())
+  checkedOut       Boolean   @default(false)
+  checkedOutAt     DateTime?
+  checkedOutBy     String?
+  eventId          String?
+  churchId         String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  // Enhanced security features - WebRTC Photo Matching + PIN
+  childPhotoUrl    String?   // Encrypted photo URL (auto-delete after 7 days)
+  parentPhotoUrl   String?   // Parent verification photo
+  securityPin      String    @default("000000") // 6-digit pickup PIN code
+  biometricHash    String?   // Optional: Face recognition hash
+  photoTakenAt     DateTime? // For 7-day auto-deletion
+  backupAuthCodes  String[]  @default([]) // Emergency override codes for authorized contacts
+  pickupAttempts   Json[]    @default([]) // Log of pickup attempts with photos/pins
+  requiresBothAuth Boolean   @default(true) // Requires BOTH photo + PIN
+  
+  church           Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  event            Event?    @relation(fields: [eventId], references: [id])
+
+  @@map("children_check_ins")
+}
+
+model DonationCategory {
+  id             String             @id @default(cuid())
+  name           String
+  description    String?
+  churchId       String
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  campaigns      DonationCampaign[]
+  church         Church             @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  donations      Donation[]
+  onlinePayments OnlinePayment[]
+
+  @@map("donation_categories")
+}
+
+model PaymentMethod {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  isDigital   Boolean    @default(false)
+  churchId    String
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  donations   Donation[]
+  church      Church     @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("payment_methods")
+}
+
+model Donation {
+  id              String            @id @default(cuid())
+  amount          Float
+  currency        String            @default("COP")
+  donorName       String?
+  donorEmail      String?
+  donorPhone      String?
+  memberId        String?
+  categoryId      String
+  paymentMethodId String
+  reference       String?
+  notes           String?
+  isAnonymous     Boolean           @default(false)
+  status          String            @default("COMPLETADA")
+  donationDate    DateTime          @default(now())
+  churchId        String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  campaignId      String?
+  campaign        DonationCampaign? @relation(fields: [campaignId], references: [id])
+  category        DonationCategory  @relation(fields: [categoryId], references: [id])
+  church          Church            @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  member          Member?           @relation(fields: [memberId], references: [id])
+  paymentMethod   PaymentMethod     @relation(fields: [paymentMethodId], references: [id])
+  onlinePayment   OnlinePayment?
+
+  @@map("donations")
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  title       String
+  message     String
+  type        String
+  category    String?
+  targetRole  String?
+  targetUser  String?
+  isRead      Boolean   @default(false)
+  isGlobal    Boolean   @default(false)
+  priority    String    @default("NORMAL")
+  actionUrl   String?
+  actionLabel String?
+  expiresAt   DateTime?
+  churchId    String
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  church      Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  creator     User?     @relation("NotificationCreator", fields: [createdBy], references: [id])
+
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  emailEnabled         Boolean  @default(true)
+  emailEvents          Boolean  @default(true)
+  emailDonations       Boolean  @default(true)
+  emailCommunications  Boolean  @default(true)
+  emailSystemUpdates   Boolean  @default(true)
+  inAppEnabled         Boolean  @default(true)
+  inAppEvents          Boolean  @default(true)
+  inAppDonations       Boolean  @default(true)
+  inAppCommunications  Boolean  @default(true)
+  inAppSystemUpdates   Boolean  @default(true)
+  pushEnabled          Boolean  @default(false)
+  pushEvents           Boolean  @default(true)
+  pushDonations        Boolean  @default(false)
+  pushCommunications   Boolean  @default(true)
+  pushSystemUpdates    Boolean  @default(true)
+  quietHoursEnabled    Boolean  @default(false)
+  quietHoursStart      String?
+  quietHoursEnd        String?
+  weekendNotifications Boolean  @default(true)
+  digestEnabled        Boolean  @default(false)
+  digestFrequency      String   @default("DAILY")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation("UserNotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model NotificationTemplate {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  category          String
+  type              String   @default("INFO")
+  priority          String   @default("NORMAL")
+  titleTemplate     String
+  messageTemplate   String
+  actionLabel       String?
+  isActive          Boolean  @default(true)
+  isSystem          Boolean  @default(false)
+  defaultTargetRole String?
+  churchId          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  church            Church?  @relation("ChurchNotificationTemplates", fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@unique([name, churchId])
+  @@map("notification_templates")
+}
+
+model Communication {
+  id          String                 @id @default(cuid())
+  title       String
+  content     String
+  type        String
+  targetGroup String?
+  recipients  Int?
+  status      String                 @default("BORRADOR")
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  sentBy      String
+  templateId  String?
+  churchId    String
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  church      Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  template    CommunicationTemplate? @relation(fields: [templateId], references: [id])
+
+  @@map("communications")
+}
+
+model CommunicationTemplate {
+  id             String          @id @default(cuid())
+  name           String
+  subject        String?
+  content        String
+  type           String
+  variables      String?
+  category       String?
+  isActive       Boolean         @default(true)
+  churchId       String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  church         Church          @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  communications Communication[]
+
+  @@map("communication_templates")
+}
+
+model EventResource {
+  id           String                     @id @default(cuid())
+  name         String
+  description  String?
+  type         String
+  capacity     Int?
+  isActive     Boolean                    @default(true)
+  churchId     String
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+  reservations EventResourceReservation[]
+  church       Church                     @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("event_resources")
+}
+
+model EventResourceReservation {
+  id         String        @id @default(cuid())
+  resourceId String
+  eventId    String
+  startTime  DateTime
+  endTime    DateTime
+  notes      String?
+  status     String        @default("CONFIRMADA")
+  reservedBy String
+  churchId   String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  church     Church        @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  event      Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  resource   EventResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@map("event_resource_reservations")
+}
+
+model IntegrationConfig {
+  id        String   @id @default(cuid())
+  service   String
+  config    String
+  isActive  Boolean  @default(false)
+  churchId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  church    Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("integration_configs")
+}
+
+model Automation {
+  id          String                @id @default(cuid())
+  name        String
+  description String?
+  trigger     String
+  actions     String
+  conditions  String?
+  isActive    Boolean               @default(true)
+  churchId    String
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  executions  AutomationExecution[]
+  church      Church                @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("automations")
+}
+
+model AutomationExecution {
+  id           String     @id @default(cuid())
+  automationId String
+  triggerData  String?
+  status       String     @default("EJECUTANDO")
+  results      String?
+  executedAt   DateTime   @default(now())
+  completedAt  DateTime?
+  churchId     String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  church       Church     @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("automation_executions")
+}
+
+model SocialMediaAccount {
+  id             String                  @id @default(cuid())
+  platform       String
+  accountId      String
+  username       String?
+  displayName    String?
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  isActive       Boolean                 @default(true)
+  lastSync       DateTime?
+  accountData    String?
+  churchId       String
+  connectedBy    String
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  campaignPosts  MarketingCampaignPost[]
+  church         Church                  @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  metrics        SocialMediaMetrics[]
+
+  @@unique([platform, accountId, churchId])
+  @@map("social_media_accounts")
+}
+
+model SocialMediaPost {
+  id            String                  @id @default(cuid())
+  title         String?
+  content       String
+  mediaUrls     String?
+  platforms     String
+  accountIds    String
+  status        String                  @default("DRAFT")
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  postIds       String?
+  engagement    String?
+  hashtags      String?
+  mentions      String?
+  campaignId    String?
+  authorId      String
+  churchId      String
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  campaignPosts MarketingCampaignPost[]
+  campaign      MarketingCampaign?      @relation(fields: [campaignId], references: [id])
+  church        Church                  @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("social_media_posts")
+}
+
+model MarketingCampaign {
+  id             String                  @id @default(cuid())
+  name           String
+  description    String?
+  objectives     String?
+  targetAudience String?
+  budget         Float?
+  currency       String                  @default("USD")
+  startDate      DateTime
+  endDate        DateTime?
+  status         String                  @default("DRAFT")
+  platforms      String
+  metrics        String?
+  tags           String?
+  managerId      String
+  churchId       String
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  campaignPosts  MarketingCampaignPost[]
+  church         Church                  @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  posts          SocialMediaPost[]
+
+  @@map("marketing_campaigns")
+}
+
+model MarketingCampaignPost {
+  id          String             @id @default(cuid())
+  campaignId  String
+  postId      String
+  accountId   String
+  order       Int                @default(0)
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  status      String             @default("PENDING")
+  metrics     String?
+  notes       String?
+  churchId    String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  account     SocialMediaAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  campaign    MarketingCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  church      Church             @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  post        SocialMediaPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, postId, accountId])
+  @@map("marketing_campaign_posts")
+}
+
+model SocialMediaMetrics {
+  id          String             @id @default(cuid())
+  accountId   String
+  postId      String?
+  campaignId  String?
+  platform    String
+  metricType  String
+  value       Float
+  date        DateTime
+  periodType  String             @default("DAILY")
+  metadata    String?
+  churchId    String
+  collectedAt DateTime           @default(now())
+  createdAt   DateTime           @default(now())
+  account     SocialMediaAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  church      Church             @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, postId, metricType, date, periodType])
+  @@map("social_media_metrics")
+}
+
+model CustomReport {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  reportType  String
+  config      String
+  filters     String?
+  columns     String
+  groupBy     String?
+  sortBy      String?
+  chartType   String?
+  isPublic    Boolean           @default(false)
+  isTemplate  Boolean           @default(false)
+  createdBy   String
+  churchId    String
+  lastRunAt   DateTime?
+  runCount    Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  church      Church            @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  executions  ReportExecution[]
+  schedules   ReportSchedule[]
+
+  @@map("custom_reports")
+}
+
+model ReportSchedule {
+  id            String       @id @default(cuid())
+  reportId      String
+  frequency     String
+  dayOfWeek     Int?
+  dayOfMonth    Int?
+  time          String
+  recipients    String
+  format        String       @default("PDF")
+  isActive      Boolean      @default(true)
+  lastSent      DateTime?
+  nextScheduled DateTime?
+  churchId      String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  church        Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  report        CustomReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_schedules")
+}
+
+model ReportExecution {
+  id            String       @id @default(cuid())
+  reportId      String
+  status        String
+  format        String
+  fileUrl       String?
+  parameters    String?
+  rowCount      Int?
+  executionTime Int?
+  errorMessage  String?
+  executedBy    String?
+  churchId      String
+  createdAt     DateTime     @default(now())
+  completedAt   DateTime?
+  church        Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  report        CustomReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_executions")
+}
+
+model AnalyticsDashboard {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  layout      String
+  isDefault   Boolean           @default(false)
+  isPublic    Boolean           @default(false)
+  userRole    String?
+  createdBy   String
+  churchId    String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  church      Church            @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  widgets     DashboardWidget[]
+
+  @@map("analytics_dashboards")
+}
+
+model DashboardWidget {
+  id              String             @id @default(cuid())
+  dashboardId     String
+  name            String
+  type            String
+  chartType       String?
+  dataSource      String
+  filters         String?
+  position        String
+  refreshInterval Int                @default(300)
+  isVisible       Boolean            @default(true)
+  config          String?
+  churchId        String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  church          Church             @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  dashboard       AnalyticsDashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@map("dashboard_widgets")
+}
+
+model KPIMetric {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  category       String
+  metricType     String
+  dataSource     String
+  target         Float?
+  currentValue   Float
+  previousValue  Float?
+  changePercent  Float?
+  trendDirection String?
+  color          String   @default("blue")
+  icon           String?
+  unit           String?
+  period         String   @default("MONTHLY")
+  isActive       Boolean  @default(true)
+  churchId       String
+  lastCalculated DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  church         Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("kpi_metrics")
+}
+
+model AnalyticsCache {
+  id         String   @id @default(cuid())
+  cacheKey   String
+  dataType   String
+  data       String
+  parameters String?
+  expiresAt  DateTime
+  churchId   String
+  createdAt  DateTime @default(now())
+  church     Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@unique([cacheKey, churchId])
+  @@map("analytics_cache")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Website {
+  id              String             @id @default(cuid())
+  name            String
+  slug            String             @unique
+  domain          String?
+  description     String?
+  theme           String             @default("default")
+  primaryColor    String             @default("#3B82F6")
+  secondaryColor  String             @default("#64748B")
+  accentColor     String?
+  fontFamily      String             @default("Inter")
+  metaTitle       String?
+  metaDescription String?
+  metaImage       String?
+  metadata        String?            @db.Text
+  isPublished     Boolean            @default(false)
+  isActive        Boolean            @default(true)
+  churchId        String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  funnels                Funnel[]
+  pages                  WebPage[]
+  analytics              WebsiteAnalytics[]
+  existingWebsiteRequests WebsiteRequest[]  @relation("ExistingWebsiteRequests")
+  resultingWebsiteRequests WebsiteRequest[] @relation("ResultingWebsiteRequests")
+  church                 Church            @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("websites")
+}
+
+model WebPage {
+  id              String           @id @default(cuid())
+  title           String
+  slug            String
+  content         Json
+  metaTitle       String?
+  metaDescription String?
+  metaImage       String?
+  isHomePage      Boolean          @default(false)
+  isPublished     Boolean          @default(false)
+  order           Int              @default(0)
+  websiteId       String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  sections        WebPageSection[]
+  website         Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@unique([websiteId, slug])
+  @@map("web_pages")
+}
+
+model WebPageSection {
+  id        String   @id @default(cuid())
+  type      String
+  content   Json
+  order     Int      @default(0)
+  isVisible Boolean  @default(true)
+  pageId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  page      WebPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@map("web_page_sections")
+}
+
+model Funnel {
+  id          String             @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  type        FunnelType
+  config      Json
+  isActive    Boolean            @default(true)
+  isPublished Boolean            @default(false)
+  websiteId   String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  conversions FunnelConversion[]
+  steps       FunnelStep[]
+  website     Website            @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@unique([websiteId, slug])
+  @@map("funnels")
+}
+
+model FunnelStep {
+  id          String             @id @default(cuid())
+  name        String
+  slug        String
+  content     Json
+  type        FunnelStepType
+  order       Int                @default(0)
+  settings    Json
+  funnelId    String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  conversions FunnelConversion[]
+  funnel      Funnel             @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  @@unique([funnelId, slug])
+  @@map("funnel_steps")
+}
+
+model FunnelConversion {
+  id        String      @id @default(cuid())
+  email     String
+  firstName String?
+  lastName  String?
+  phone     String?
+  data      Json?
+  source    String?
+  ipAddress String?
+  userAgent String?
+  funnelId  String
+  stepId    String?
+  createdAt DateTime    @default(now())
+  funnel    Funnel      @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  step      FunnelStep? @relation(fields: [stepId], references: [id])
+
+  @@map("funnel_conversions")
+}
+
+model WebsiteAnalytics {
+  id                 String   @id @default(cuid())
+  pageViews          Int      @default(0)
+  uniqueVisitors     Int      @default(0)
+  bounceRate         Float?
+  avgSessionDuration Int?
+  referrer           String?
+  page               String
+  date               DateTime @default(now())
+  websiteId          String
+  createdAt          DateTime @default(now())
+  website            Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@map("website_analytics")
+}
+
+model UserThemePreference {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  churchId             String?
+  themeName            String   @default("default")
+  themeMode            String   @default("light")
+  primaryColor         String?
+  secondaryColor       String?
+  accentColor          String?
+  destructiveColor     String?
+  backgroundColor      String?
+  foregroundColor      String?
+  cardColor            String?
+  cardForegroundColor  String?
+  borderColor          String?
+  mutedColor           String?
+  mutedForegroundColor String?
+  fontFamily           String?  @default("Inter")
+  fontSize             String?  @default("medium")
+  borderRadius         String?  @default("0.5rem")
+  compactMode          Boolean  @default(false)
+  logoUrl              String?
+  faviconUrl           String?
+  brandName            String?
+  isActive             Boolean  @default(true)
+  isPublic             Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  church               Church?  @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_theme_preferences")
+}
+
+model ChurchTheme {
+  id                 String   @id @default(cuid())
+  churchId           String   @unique
+  themeName          String   @default("church-default")
+  themeConfig        String
+  logoUrl            String?
+  faviconUrl         String?
+  bannerUrl          String?
+  brandColors        String?
+  primaryFont        String?  @default("Inter")
+  headingFont        String?  @default("Inter")
+  layoutStyle        String?  @default("default")
+  allowMemberThemes  Boolean  @default(true)
+  allowColorChanges  Boolean  @default(true)
+  allowFontChanges   Boolean  @default(true)
+  allowLayoutChanges Boolean  @default(false)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  church             Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("church_themes")
+}
+
+model AutomationRule {
+  id             String                    @id @default(cuid())
+  name           String
+  description    String?
+  churchId       String
+  createdBy      String
+  isActive       Boolean                   @default(true)
+  priority       Int                       @default(0)
+  executeOnce    Boolean                   @default(false)
+  maxExecutions  Int?
+  executionCount Int                       @default(0)
+  lastExecuted   DateTime?
+  metadata       Json?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  actions        AutomationAction[]
+  conditions     AutomationCondition[]
+  executions     AutomationRuleExecution[]
+  church         Church                    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  creator        User                      @relation(fields: [createdBy], references: [id])
+  triggers       AutomationTrigger[]
+
+  @@index([churchId])
+  @@index([isActive])
+  @@index([priority])
+  @@map("automation_rules")
+}
+
+model AutomationTrigger {
+  id            String                @id @default(cuid())
+  ruleId        String
+  type          AutomationTriggerType
+  eventSource   String?
+  configuration Json                  @default("{}")
+  isActive      Boolean               @default(true)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  rule          AutomationRule        @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([type])
+  @@index([isActive])
+  @@map("automation_triggers")
+}
+
+model AutomationCondition {
+  id              String                  @id @default(cuid())
+  ruleId          String
+  type            AutomationConditionType
+  field           String
+  operator        String
+  value           Json
+  logicalOperator String                  @default("AND")
+  groupId         String?
+  orderIndex      Int                     @default(0)
+  isActive        Boolean                 @default(true)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  rule            AutomationRule          @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([type])
+  @@index([groupId])
+  @@map("automation_conditions")
+}
+
+model AutomationAction {
+  id            String               @id @default(cuid())
+  ruleId        String
+  type          AutomationActionType
+  configuration Json                 @default("{}")
+  orderIndex    Int                  @default(0)
+  delay         Int                  @default(0)
+  isActive      Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  rule          AutomationRule       @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([type])
+  @@index([orderIndex])
+  @@map("automation_actions")
+}
+
+model AutomationRuleExecution {
+  id          String         @id @default(cuid())
+  ruleId      String
+  triggerData Json
+  status      String         @default("PENDING")
+  result      Json?
+  error       String?
+  executedAt  DateTime?
+  duration    Int?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  rule        AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("automation_rule_executions")
+}
+
+model AutomationTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String
+  template    Json
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  usageCount  Int      @default(0)
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  creator     User?    @relation(fields: [createdBy], references: [id])
+
+  @@index([category])
+  @@index([isActive])
+  @@map("automation_templates")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  churchId  String
+  endpoint  String
+  p256dh    String
+  auth      String
+  isActive  Boolean  @default(true)
+  userAgent String?
+  platform  String?
+  language  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  church    Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+  @@index([churchId])
+  @@index([isActive])
+  @@map("push_subscriptions")
+}
+
+model PushNotificationLog {
+  id               String    @id @default(cuid())
+  churchId         String
+  userId           String?
+  title            String
+  body             String
+  payload          Json?
+  status           String    @default("PENDING")
+  deliveryAttempts Int       @default(0)
+  lastAttempt      DateTime?
+  error            String?
+  clickedAt        DateTime?
+  dismissedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  church           Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  user             User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([churchId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("push_notification_logs")
+}
+
+model SubscriptionPlan {
+  id            String               @id @default(cuid())
+  name          String               @unique
+  displayName   String
+  description   String?
+  priceMonthly  String               // Changed to String for direct input/display
+  priceYearly   String?              // Changed to String for direct input/display
+  maxChurches   Int                  @default(1)
+  maxMembers    Int                  @default(100)
+  maxUsers      Int                  @default(5)
+  isActive      Boolean              @default(true)
+  sortOrder     Int                  @default(0)
+  features      Json?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  subscriptions ChurchSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model PlanFeature {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  category    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("plan_features")
+}
+
+model SubscriptionAddon {
+  id            String                    @id @default(cuid())
+  key           String                    @unique
+  name          String
+  description   String?
+  priceMonthly  String                    // Changed to String for direct input/display
+  priceYearly   String?                   // Changed to String for direct input/display
+  billingType   String                    @default("MONTHLY")
+  pricePerUnit  String?                   // Changed to String for direct input/display
+  unit          String?
+  isActive      Boolean                   @default(true)
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  subscriptions ChurchSubscriptionAddon[]
+
+  @@map("subscription_addons")
+}
+
+model ChurchSubscription {
+  id                 String                    @id @default(cuid())
+  churchId           String                    @unique
+  planId             String
+  billingCycle       String                    @default("MONTHLY")
+  status             String                    @default("ACTIVE")
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  trialEnd           DateTime?
+  cancelAtPeriodEnd  Boolean                   @default(false)
+  cancelledAt        DateTime?
+  metadata           Json?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  addons             ChurchSubscriptionAddon[]
+  church             Church                    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  plan               SubscriptionPlan          @relation(fields: [planId], references: [id])
+  invoices           Invoice[]
+
+  @@index([churchId])
+  @@index([planId])
+  @@index([status])
+  @@map("church_subscriptions")
+}
+
+model ChurchSubscriptionAddon {
+  id             String             @id @default(cuid())
+  subscriptionId String
+  addonId        String
+  quantity       Int                @default(1)
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  addon          SubscriptionAddon  @relation(fields: [addonId], references: [id])
+  subscription   ChurchSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, addonId])
+  @@map("church_subscription_addons")
+}
+
+model SupportContactInfo {
+  id             String   @id @default("default")
+  whatsappNumber String   @default("+57 300 KHESED (543733)")
+  whatsappUrl    String   @default("https://wa.me/573003435733")
+  email          String   @default("soporte@khesedtek.com")
+  schedule       String   @default("Lun-Vie 8AM-8PM (Colombia)")
+  companyName    String   @default("Khesed-tek Systems")
+  location       String   @default("Bogotá, Colombia")
+  website        String   @default("https://khesedtek.com")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("support_contact_info")
+}
+
+model OnlinePayment {
+  id               String            @id @default(cuid())
+  paymentId        String            @unique
+  amount           Float
+  currency         String            @default("COP")
+  gatewayType      String
+  status           String            @default("pending")
+  donorName        String?
+  donorEmail       String?
+  donorPhone       String?
+  donationId       String?           @unique
+  churchId         String
+  categoryId       String?
+  reference        String?
+  gatewayReference String?
+  redirectUrl      String?
+  returnUrl        String?
+  notes            String?
+  metadata         Json?
+  webhookReceived  Boolean           @default(false)
+  completedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  category         DonationCategory? @relation(fields: [categoryId], references: [id])
+  church           Church            @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  donation         Donation?         @relation(fields: [donationId], references: [id])
+
+  @@index([paymentId])
+  @@index([status])
+  @@index([churchId])
+  @@map("online_payments")
+}
+
+model PaymentGatewayConfig {
+  id            String   @id @default(cuid())
+  gatewayType   String
+  churchId      String
+  isEnabled     Boolean  @default(false)
+  isTestMode    Boolean  @default(true)
+  merchantId    String?
+  apiKey        String?
+  clientId      String?
+  clientSecret  String?
+  webhookSecret String?
+  configuration Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  church        Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@unique([churchId, gatewayType])
+  @@map("payment_gateway_configs")
+}
+
+model DonationCampaign {
+  id            String            @id @default(cuid())
+  title         String
+  description   String?
+  goalAmount    Float?
+  currentAmount Float             @default(0)
+  currency      String            @default("COP")
+  churchId      String
+  categoryId    String?
+  isActive      Boolean           @default(true)
+  isPublic      Boolean           @default(true)
+  slug          String?           @unique
+  coverImage    String?
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  category      DonationCategory? @relation(fields: [categoryId], references: [id])
+  church        Church            @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  donations     Donation[]
+
+  @@map("donation_campaigns")
+}
+
+model PrayerCategory {
+  id                String                   @id @default(cuid())
+  name              String
+  description       String?
+  icon              String?
+  color             String?
+  isActive          Boolean                  @default(true)
+  churchId          String
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  church            Church                   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  requests          PrayerRequest[]
+  responseTemplates PrayerResponseTemplate[]
+
+  @@unique([churchId, name])
+  @@map("prayer_categories")
+}
+
+model PrayerResponseTemplate {
+  id         String         @id @default(cuid())
+  categoryId String
+  title      String
+  message    String
+  smsMessage String?
+  isActive   Boolean        @default(true)
+  isDefault  Boolean        @default(false)
+  churchId   String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  category   PrayerCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  church     Church         @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("prayer_response_templates")
+}
+
+model PrayerContact {
+  id               String           @id @default(cuid())
+  fullName         String
+  phone            String?
+  email            String?
+  preferredContact String           @default("sms")
+  churchId         String
+  isActive         Boolean          @default(true)
+  source           String           @default("prayer_form")
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  approvals        PrayerApproval[]
+  church           Church           @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  requests         PrayerRequest[]
+  testimonies      PrayerTestimony[]
+
+  @@unique([churchId, phone])
+  @@unique([churchId, email])
+  @@map("prayer_contacts")
+}
+
+model PrayerRequest {
+  id           String          @id @default(cuid())
+  contactId    String
+  categoryId   String
+  message      String?
+  isAnonymous  Boolean         @default(false)
+  status       String          @default("pending")
+  priority     String          @default("normal")
+  scheduledAt  DateTime?
+  sentAt       DateTime?
+  responseType String?
+  churchId     String
+  formId       String?
+  qrCodeId     String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  approval     PrayerApproval?
+  category     PrayerCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  church       Church          @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  contact      PrayerContact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  testimonies  PrayerTestimony[]
+
+  @@map("prayer_requests")
+}
+
+model PrayerApproval {
+  id         String        @id @default(cuid())
+  requestId  String        @unique
+  contactId  String
+  approvedBy String
+  status     String        @default("pending")
+  notes      String?
+  approvedAt DateTime?
+  churchId   String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  approver   User          @relation(fields: [approvedBy], references: [id])
+  church     Church        @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  contact    PrayerContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  request    PrayerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@map("prayer_approvals")
+}
+
+model PrayerForm {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  fields      Json
+  style       Json?
+  isActive    Boolean        @default(true)
+  isPublic    Boolean        @default(true)
+  slug        String         @unique
+  churchId    String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  church      Church         @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  qrCodes     PrayerQRCode[]
+
+  @@map("prayer_forms")
+}
+
+model PrayerQRCode {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  formId      String
+  code        String     @unique
+  design      Json?
+  isActive    Boolean    @default(true)
+  scanCount   Int        @default(0)
+  lastScan    DateTime?
+  churchId    String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  church      Church     @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  form        PrayerForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@map("prayer_qr_codes")
+}
+
+model PrayerTestimony {
+  id                  String           @id @default(cuid())
+  title               String
+  message             String
+  contactId           String?          // Optional - may come from anonymous submissions
+  prayerRequestId     String?          // Optional - linked to answered prayer
+  category            String           @default("general") // healing, provision, guidance, etc.
+  isAnonymous         Boolean          @default(false)
+  status              String           @default("pending") // pending, approved, rejected
+  isPublic            Boolean          @default(false)     // Whether to show publicly
+  imageUrl            String?          // Optional photo/image attachment
+  tags                Json?            // Array of tags for categorization
+  churchId            String
+  formId              String?          // If submitted via QR code form
+  qrCodeId            String?          // If submitted via QR code
+  approvedBy          String?          // User who approved it
+  approvedAt          DateTime?
+  submittedAt         DateTime         @default(now())
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  
+  // Relations
+  church              Church           @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  contact             PrayerContact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  prayerRequest       PrayerRequest?   @relation(fields: [prayerRequestId], references: [id], onDelete: SetNull)
+  approver            User?            @relation(fields: [approvedBy], references: [id])
+
+  @@map("prayer_testimonies")
+}
+
+model TestimonyForm {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  fields      Json           // Form field definitions
+  style       Json?          // Styling configuration
+  isActive    Boolean        @default(true)
+  isPublic    Boolean        @default(true)
+  slug        String         @unique
+  churchId    String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  church      Church         @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  qrCodes     TestimonyQRCode[]
+
+  @@map("testimony_forms")
+}
+
+model TestimonyQRCode {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  formId      String
+  code        String       @unique
+  design      Json?
+  isActive    Boolean      @default(true)
+  scanCount   Int          @default(0)
+  lastScan    DateTime?
+  churchId    String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  church      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  form        TestimonyForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@map("testimony_qr_codes")
+}
+
+// Smart Volunteer Scheduling System Models
+model SpiritualGift {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    String   // Leadership, Service, Teaching, etc.
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("spiritual_gifts")
+}
+
+model MemberSpiritualProfile {
+  id              String   @id @default(cuid())
+  memberId        String   @unique
+  primaryGifts    Json     // Array of spiritual gift IDs
+  secondaryGifts  Json     // Array of secondary spiritual gift IDs
+  spiritualCalling String?
+  ministryPassions Json    // Array of ministry areas
+  experienceLevel Int      @default(1) // 1-10 scale
+  leadershipScore Int      @default(1) // 1-10 scale
+  servingMotivation String? // Why they want to serve
+  previousExperience Json? // Array of previous ministry roles
+  trainingCompleted Json?  // Array of completed training programs
+  
+  // Enhanced Assessment Scores (closes gaps identified)
+  spiritualMaturityScore Int @default(50) // 0-100 scale for spiritual maturity
+  leadershipAptitudeScore Int @default(50) // 0-100 scale for leadership aptitude  
+  ministryPassionScore Int @default(50) // 0-100 how passionate about ministry
+  availabilityScore Int @default(50) // 0-100 based on time commitment ability
+  teachingAbility Int @default(50) // 0-100 teaching and training capability
+  pastoralHeart Int @default(50) // 0-100 caring and shepherding ability
+  organizationalSkills Int @default(50) // 0-100 planning and coordination skills
+  communicationSkills Int @default(50) // 0-100 verbal and written communication
+  
+  // Training and Development Tracking
+  leadershipTrainingCompleted Boolean @default(false)
+  leadershipTrainingDate DateTime?
+  mentoringExperience Boolean @default(false) // Has mentored others
+  discipleshipTraining Boolean @default(false) // Has discipleship training
+  
+  // Qualification Status (calculated fields)
+  volunteerReadinessScore Int @default(0) // 0-100 composite score for volunteer readiness
+  leadershipReadinessScore Int @default(0) // 0-100 composite score for leadership readiness
+  
+  assessmentDate  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@map("member_spiritual_profiles")
+}
+
+model AvailabilityMatrix {
+  id                    String   @id @default(cuid())
+  memberId              String   @unique
+  recurringAvailability Json     // Weekly schedule grid
+  blackoutDates        Json     // Array of unavailable date ranges
+  preferredMinistries   Json     // Array of preferred ministry IDs
+  maxCommitmentsPerMonth Int     @default(4)
+  preferredTimeSlots    Json     // Morning, Afternoon, Evening preferences
+  travelWillingness     Int      @default(1) // 1-10 scale for travel distance
+  lastUpdated          DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@map("availability_matrices")
+}
+
+model VolunteerRecommendation {
+  id            String   @id @default(cuid())
+  memberId      String
+  ministryId    String
+  eventId       String?
+  recommendationType String // AUTO_MATCH, SKILL_BASED, AVAILABILITY_BASED
+  matchScore    Float    // 0-100 compatibility score
+  reasoning     Json     // Explanation of why recommended
+  status        String   @default("PENDING") // PENDING, ACCEPTED, DECLINED, EXPIRED
+  priority      String   @default("MEDIUM") // HIGH, MEDIUM, LOW
+  validUntil    DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  member   Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  ministry Ministry  @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  event    Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("volunteer_recommendations")
+}
+
+model MinistryGapAnalysis {
+  id                String   @id @default(cuid())
+  ministryId        String
+  churchId          String
+  analysisDate      DateTime @default(now())
+  gapsIdentified    Json     // Array of gap details
+  urgencyScore      Int      // 1-10 scale
+  recommendedActions Json    // Array of suggested actions
+  currentStaffing   Int      // Current volunteer count
+  optimalStaffing   Int      // Ideal volunteer count
+  gapPercentage     Float    // Percentage of understaffing
+  seasonalFactor    Float    @default(1.0) // Seasonal adjustment
+  status            String   @default("ACTIVE") // ACTIVE, RESOLVED, MONITORING
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  ministry Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  church   Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("ministry_gap_analyses")
+}
+
+model VolunteerEngagementScore {
+  id                 String   @id @default(cuid())
+  volunteerId        String   @unique
+  currentScore       Float    @default(0.0) // 0-100 engagement score
+  participationRate  Float    @default(0.0) // Percentage of accepted assignments
+  consistencyScore   Float    @default(0.0) // Reliability metric
+  feedbackScore      Float    @default(0.0) // Average feedback from leaders
+  growthTrend        String   @default("STABLE") // GROWING, DECLINING, STABLE
+  lastActivityDate   DateTime?
+  burnoutRisk        String   @default("LOW") // HIGH, MEDIUM, LOW
+  recommendedActions Json?    // Array of engagement improvement suggestions
+  calculatedAt       DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@map("volunteer_engagement_scores")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN_IGLESIA
+  PASTOR
+  LIDER
+  MIEMBRO
+}
+
+enum FunnelType {
+  LEAD_GENERATION
+  EVENT_REGISTRATION
+  DONATION
+  NEWSLETTER
+  CUSTOM
+}
+
+enum FunnelStepType {
+  LANDING_PAGE
+  OPT_IN
+  THANK_YOU
+  SALES_PAGE
+  CHECKOUT
+  CONFIRMATION
+  CUSTOM
+}
+
+enum AutomationTriggerType {
+  MEMBER_JOINED
+  DONATION_RECEIVED
+  EVENT_CREATED
+  EVENT_UPDATED
+  ATTENDANCE_RECORDED
+  VOLUNTEER_ASSIGNED
+  BIRTHDAY
+  ANNIVERSARY
+  SERMON_PUBLISHED
+  COMMUNICATION_SENT
+  FOLLOW_UP_DUE
+  CUSTOM_EVENT
+}
+
+enum AutomationConditionType {
+  EQUALS
+  NOT_EQUALS
+  GREATER_THAN
+  LESS_THAN
+  CONTAINS
+  NOT_CONTAINS
+  IN
+  NOT_IN
+  EXISTS
+  NOT_EXISTS
+  DATE_BEFORE
+  DATE_AFTER
+  DATE_BETWEEN
+  TIME_BEFORE
+  TIME_AFTER
+  CUSTOM
+}
+
+enum AutomationActionType {
+  SEND_NOTIFICATION
+  SEND_EMAIL
+  SEND_PUSH
+  SEND_SMS
+  CREATE_FOLLOW_UP
+  ASSIGN_VOLUNTEER
+  UPDATE_MEMBER
+  CREATE_EVENT
+  CUSTOM_WEBHOOK
+}
+
+// Website Request Management for SUPER_ADMIN service model
+model WebsiteRequest {
+  id                    String    @id @default(cuid())
+  churchId              String
+  requestType           String    // 'complete-website', 'landing-page', 'website-update', etc.
+  projectName           String
+  description           String    @db.Text
+  status                String    @default("pending") // 'pending', 'in_progress', 'completed', 'rejected'
+  priority              String    @default("medium") // 'low', 'medium', 'high'
+  contactEmail          String
+  phone                 String?
+  estimatedPrice        Int?
+  finalPrice            Int?
+  estimatedCompletion   DateTime?
+  completedAt           DateTime?
+  adminNotes            String?   @db.Text
+  metadata              String?   @db.Text // JSON metadata for additional details
+  existingWebsiteId     String?   // If updating existing website
+  resultingWebsiteId    String?   // Website created from this request
+  assignedTo            String?   // SUPER_ADMIN assigned to this project
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  church                Church    @relation("ChurchWebsiteRequests", fields: [churchId], references: [id], onDelete: Cascade)
+  existingWebsite       Website?  @relation("ExistingWebsiteRequests", fields: [existingWebsiteId], references: [id])
+  resultingWebsite      Website?  @relation("ResultingWebsiteRequests", fields: [resultingWebsiteId], references: [id])
+  assignee              User?     @relation("AssignedWebsiteRequests", fields: [assignedTo], references: [id])
+
+  @@map("website_requests")
+}
+
+// Platform configuration settings for SUPER_ADMIN
+model PlatformSettings {
+  id                String   @id @default("default")
+  currency          String   @default("USD")
+  taxRate           Float    @default(0.0)
+  freeTrialDays     Int      @default(14)
+  gracePeriodDays   Int      @default(7)
+  platformName      String   @default("Kḥesed-tek Church Management Systems")
+  supportEmail      String   @default("soporte@khesedtek.com")
+  maintenanceMode   Boolean  @default(false)
+  allowRegistrations Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("platform_settings")
+}
+
+// SUPER_ADMIN Invoice Management System
+model Invoice {
+  id              String            @id @default(cuid())
+  invoiceNumber   String            @unique
+  churchId        String
+  subscriptionId  String?
+  status          String            @default("DRAFT") // DRAFT, SENT, PAID, OVERDUE, CANCELLED
+  type            String            @default("SUBSCRIPTION") // SUBSCRIPTION, SETUP, ADDON, CUSTOM
+  currency        String            @default("USD")
+  subtotal        Float
+  taxAmount       Float             @default(0.0)
+  totalAmount     Float
+  dueDate         DateTime
+  isRecurrent     Boolean           @default(false)
+  recurrentConfig Json?             // Frequency, next generation date, etc.
+  notes           String?
+  pdfPath         String?           // S3 cloud storage path for PDF
+  sentAt          DateTime?
+  paidAt          DateTime?
+  createdBy       String            // SUPER_ADMIN user ID
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  church          Church            @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  subscription    ChurchSubscription? @relation(fields: [subscriptionId], references: [id])
+  creator         User              @relation("InvoiceCreator", fields: [createdBy], references: [id])
+  lineItems       InvoiceLineItem[]
+  payments        InvoicePayment[]
+  communications  InvoiceCommunication[]
+
+  @@index([churchId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([invoiceNumber])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  metadata    Json?   // Additional item data
+  createdAt   DateTime @default(now())
+  
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_line_items")
+}
+
+model InvoicePayment {
+  id              String    @id @default(cuid())
+  invoiceId       String
+  amount          Float
+  currency        String    @default("USD")
+  paymentMethod   String    // BANK_TRANSFER, CREDIT_CARD, CASH, CHECK, etc.
+  reference       String?   // Payment reference/transaction ID
+  notes           String?
+  verifiedBy      String?   // SUPER_ADMIN user ID who verified payment
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  
+  invoice         Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  verifier        User?     @relation("PaymentVerifier", fields: [verifiedBy], references: [id])
+
+  @@index([invoiceId])
+  @@map("invoice_payments")
+}
+
+model InvoiceCommunication {
+  id          String    @id @default(cuid())
+  invoiceId   String
+  type        String    // EMAIL, SMS, WHATSAPP, INTERNAL_MESSAGE
+  direction   String    // OUTBOUND, INBOUND
+  subject     String?
+  message     String
+  sentBy      String?   // User ID (SUPER_ADMIN or tenant user)
+  sentTo      String?   // User ID or email
+  status      String    @default("SENT") // DRAFT, SENT, DELIVERED, READ, FAILED
+  metadata    Json?     // Email headers, delivery status, etc.
+  createdAt   DateTime  @default(now())
+  
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  sender      User?     @relation("CommunicationSender", fields: [sentBy], references: [id])
+
+  @@index([invoiceId])
+  @@index([type])
+  @@map("invoice_communications")
+}
+
+model TenantCredentials {
+  id            String    @id @default(cuid())
+  churchId      String    @unique
+  loginEmail    String
+  tempPassword  String?   // Encrypted temporary password
+  isFirstLogin  Boolean   @default(true)
+  sentAt        DateTime?
+  lastSentAt    DateTime?
+  createdBy     String    // SUPER_ADMIN user ID
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  church        Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  creator       User      @relation("CredentialCreator", fields: [createdBy], references: [id])
+
+  @@map("tenant_credentials")
+}
