@@ -1169,6 +1169,27 @@ export function CommunicationsClient({ userRole, churchId }: CommunicationsClien
 
               <Separator />
 
+              {/* Gmail Config */}
+              <div>
+                <h3 className="font-medium mb-2 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Gmail API Service
+                </h3>
+                <div className="bg-slate-100 p-3 rounded text-sm font-mono text-slate-700">
+                  GMAIL_CLIENT_ID="your-client-id.googleusercontent.com"<br/>
+                  GMAIL_CLIENT_SECRET="your-client-secret"<br/>
+                  GMAIL_REFRESH_TOKEN="your-refresh-token"<br/>
+                  GMAIL_FROM_EMAIL="soporte@tudominio.com"<br/>
+                  ENABLE_GMAIL="true"<br/>
+                  DEFAULT_EMAIL_PROVIDER="gmail"
+                </div>
+                <p className="text-xs text-slate-600 mt-2">
+                  💡 Ideal para sistema de tickets y comunicación directa con miembros
+                </p>
+              </div>
+
+              <Separator />
+
               {/* Twilio Config */}
               <div>
                 <h3 className="font-medium mb-2 flex items-center gap-2">

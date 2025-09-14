@@ -6,21 +6,79 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Ticket, Clock, MessageCircle, Phone, Mail } from 'lucide-react'
+import { ArrowLeft, Ticket, Clock, MessageCircle, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { toast } from 'react-hot-toast'
 
 export default function SupportTicket() {
   const [formData, setFormData] = useState({
     subject: '',
     category: '',
-    priority: '',
+    priority: 'normal',
     description: ''
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submissionResult, setSubmissionResult] = useState<{
+    success: boolean
+    ticketNumber?: string
+    message?: string
+  } | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    alert('Funcionalidad de tickets será implementada próximamente. Por favor use WhatsApp o email para soporte inmediato.')
+    
+    if (!formData.subject || !formData.category || !formData.description) {
+      toast.error('Por favor complete todos los campos obligatorios')
+      return
+    }
+
+    setIsSubmitting(true)
+    setSubmissionResult(null)
+
+    try {
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setSubmissionResult({
+          success: true,
+          ticketNumber: result.ticket?.ticketNumber,
+          message: result.message
+        })
+        toast.success('Ticket creado exitosamente')
+        
+        // Reset form
+        setFormData({
+          subject: '',
+          category: '',
+          priority: 'normal',
+          description: ''
+        })
+      } else {
+        setSubmissionResult({
+          success: false,
+          message: result.error || 'Error al crear el ticket'
+        })
+        toast.error(result.error || 'Error al crear el ticket')
+      }
+    } catch (error) {
+      console.error('Error creating ticket:', error)
+      setSubmissionResult({
+        success: false,
+        message: 'Error de conexión. Por favor intente nuevamente.'
+      })
+      toast.error('Error de conexión. Por favor intente nuevamente.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const supportChannels = [
@@ -163,6 +221,40 @@ export default function SupportTicket() {
       {/* Ticket Form */}
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Crear Ticket de Soporte</h2>
+        
+        {/* Submission Result */}
+        {submissionResult && (
+          <Card className={`mb-4 ${submissionResult.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                {submissionResult.success ? (
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                )}
+                <div>
+                  <p className={`font-medium ${submissionResult.success ? 'text-green-900' : 'text-red-900'}`}>
+                    {submissionResult.success ? '¡Ticket creado exitosamente!' : 'Error al crear ticket'}
+                  </p>
+                  {submissionResult.ticketNumber && (
+                    <p className="text-green-700 text-sm">
+                      Número de ticket: <strong>#{submissionResult.ticketNumber}</strong>
+                    </p>
+                  )}
+                  <p className={`text-sm ${submissionResult.success ? 'text-green-700' : 'text-red-700'}`}>
+                    {submissionResult.message}
+                  </p>
+                  {submissionResult.success && (
+                    <p className="text-green-700 text-sm mt-2">
+                      Recibirá una confirmación por email y será notificado cuando reciba una respuesta.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         <Card>
           <CardHeader>
             <CardTitle>Describa su problema o consulta</CardTitle>
@@ -179,13 +271,18 @@ export default function SupportTicket() {
                   value={formData.subject}
                   onChange={(e) => setFormData({...formData, subject: e.target.value})}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Categoría *</label>
-                  <Select onValueChange={(value) => setFormData({...formData, category: value})}>
+                  <Select 
+                    value={formData.category} 
+                    onValueChange={(value) => setFormData({...formData, category: value})}
+                    disabled={isSubmitting}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione una categoría" />
                     </SelectTrigger>
@@ -203,7 +300,11 @@ export default function SupportTicket() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Prioridad *</label>
-                  <Select onValueChange={(value) => setFormData({...formData, priority: value})}>
+                  <Select 
+                    value={formData.priority} 
+                    onValueChange={(value) => setFormData({...formData, priority: value})}
+                    disabled={isSubmitting}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione prioridad" />
                     </SelectTrigger>
@@ -226,6 +327,7 @@ export default function SupportTicket() {
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -239,8 +341,17 @@ export default function SupportTicket() {
                 </ul>
               </div>
 
-              <Button type="submit" className="w-full">
-                🎫 Crear Ticket de Soporte
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Creando ticket...
+                  </>
+                ) : (
+                  <>
+                    🎫 Crear Ticket de Soporte
+                  </>
+                )}
               </Button>
             </form>
           </CardContent>

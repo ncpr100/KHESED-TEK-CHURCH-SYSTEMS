@@ -1,7 +1,6 @@
 generator client {
     provider = "prisma-client-js"
     binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
-    output = "/home/ubuntu/khesed_tek_church_systems/app/node_modules/.prisma/client"
 }
 
 datasource db {
@@ -81,6 +80,9 @@ model Church {
   invoices                  Invoice[]
   tenantCredentials         TenantCredentials?
   qualificationSettings     ChurchQualificationSettings?
+  
+  // Support tickets for this church/tenant
+  supportTickets            SupportTicket[]         @relation("ChurchTickets")
 
   @@map("churches")
 }
@@ -252,6 +254,12 @@ model User {
   verifiedPayments           InvoicePayment[]        @relation("PaymentVerifier")
   sentCommunications         InvoiceCommunication[]  @relation("CommunicationSender")
   createdCredentials         TenantCredentials[]     @relation("CredentialCreator")
+  
+  // Support ticket relationships
+  createdTickets             SupportTicket[]         @relation("TicketCreatedBy")
+  assignedTickets            SupportTicket[]         @relation("TicketAssignedTo")
+  ticketMessages             TicketMessage[]
+  ticketAttachments          TicketAttachment[]
 
   @@map("users")
 }
@@ -1520,6 +1528,73 @@ model SupportContactInfo {
   updatedAt      DateTime @updatedAt
 
   @@map("support_contact_info")
+}
+
+// Support ticket system for SUPER_ADMIN and tenant communication
+model SupportTicket {
+  id              String                @id @default(cuid())
+  ticketNumber    String                @unique @default(cuid())
+  subject         String
+  category        String                // 'technical', 'billing', 'usage', 'feature', 'import', 'integration', 'other'
+  priority        String                @default("normal") // 'low', 'normal', 'high', 'urgent'
+  status          String                @default("open") // 'open', 'in-progress', 'resolved', 'closed'
+  description     String
+  
+  // Relationships
+  createdById     String
+  createdBy       User                  @relation("TicketCreatedBy", fields: [createdById], references: [id])
+  assignedToId    String?               // SUPER_ADMIN assigned to handle ticket
+  assignedTo      User?                 @relation("TicketAssignedTo", fields: [assignedToId], references: [id])
+  churchId        String?               // If ticket is related to a specific church/tenant
+  church          Church?               @relation("ChurchTickets", fields: [churchId], references: [id])
+  
+  // Metadata
+  resolution      String?               // Resolution notes when closed
+  resolvedAt      DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  
+  // Related data
+  messages        TicketMessage[]
+  attachments     TicketAttachment[]
+  
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id              String           @id @default(cuid())
+  ticketId        String
+  ticket          SupportTicket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  message         String
+  isFromSupport   Boolean          @default(false) // true if from SUPER_ADMIN, false if from tenant/user
+  
+  // Message metadata
+  sentById        String
+  sentBy          User             @relation(fields: [sentById], references: [id])
+  emailMessageId  String?          // Gmail/Mailgun message ID for tracking
+  
+  createdAt       DateTime         @default(now())
+  
+  @@map("ticket_messages")
+}
+
+model TicketAttachment {
+  id              String           @id @default(cuid())
+  ticketId        String
+  ticket          SupportTicket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  filename        String
+  originalName    String
+  mimeType        String
+  fileSize        Int              // in bytes
+  filePath        String           // storage path
+  
+  uploadedById    String
+  uploadedBy      User             @relation(fields: [uploadedById], references: [id])
+  createdAt       DateTime         @default(now())
+  
+  @@map("ticket_attachments")
 }
 
 model OnlinePayment {
