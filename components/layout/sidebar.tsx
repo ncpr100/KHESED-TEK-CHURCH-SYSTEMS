@@ -32,6 +32,7 @@ import {
   HelpCircle,
   Brain,
   Building2,
+  Ticket,
 } from 'lucide-react'
 
 const navigationItems = [
@@ -153,6 +154,12 @@ const navigationItems = [
     title: 'Plataforma Admin',
     href: '/platform/dashboard',
     icon: Shield,
+    roles: ['SUPER_ADMIN'],
+  },
+  {
+    title: 'Tickets de Soporte',
+    href: '/admin/tickets',
+    icon: Ticket,
     roles: ['SUPER_ADMIN'],
   },
   {

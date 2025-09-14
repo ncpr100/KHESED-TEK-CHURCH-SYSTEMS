@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MessageSquare, Send, Clock, Users, Mail, Phone, Plus, Edit, Settings, CheckCircle, XCircle, Zap, AlertTriangle, RefreshCw } from 'lucide-react'
+import { GmailConfig } from '@/components/integrations/gmail-config'
 import { toast } from 'sonner'
 
 interface Communication {
@@ -677,7 +678,7 @@ export function CommunicationsClient({ userRole, churchId }: CommunicationsClien
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="send" onClick={() => setActiveTab('send')}>
             Enviar
           </TabsTrigger>
@@ -689,6 +690,9 @@ export function CommunicationsClient({ userRole, churchId }: CommunicationsClien
           </TabsTrigger>
           <TabsTrigger value="history" onClick={() => setActiveTab('history')}>
             Historial
+          </TabsTrigger>
+          <TabsTrigger value="gmail" onClick={() => setActiveTab('gmail')}>
+            Gmail API
           </TabsTrigger>
           <TabsTrigger value="setup" onClick={() => setActiveTab('setup')}>
             Configurar
@@ -1048,6 +1052,10 @@ export function CommunicationsClient({ userRole, churchId }: CommunicationsClien
           </Card>
         </TabsContent>
 
+        <TabsContent value="gmail" className="space-y-4">
+          <GmailConfig userRole={userRole} />
+        </TabsContent>
+
         <TabsContent value="setup" className="space-y-4">
           {/* Integration Testing */}
           <Card>
@@ -1165,6 +1173,27 @@ export function CommunicationsClient({ userRole, churchId }: CommunicationsClien
                   MAILGUN_FROM_EMAIL="noreply@tudominio.com"<br/>
                   ENABLE_MAILGUN="true"
                 </div>
+              </div>
+
+              <Separator />
+
+              {/* Gmail Config */}
+              <div>
+                <h3 className="font-medium mb-2 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Gmail API Service
+                </h3>
+                <div className="bg-slate-100 p-3 rounded text-sm font-mono text-slate-700">
+                  GMAIL_CLIENT_ID="your-client-id.googleusercontent.com"<br/>
+                  GMAIL_CLIENT_SECRET="your-client-secret"<br/>
+                  GMAIL_REFRESH_TOKEN="your-refresh-token"<br/>
+                  GMAIL_FROM_EMAIL="soporte@tudominio.com"<br/>
+                  ENABLE_GMAIL="true"<br/>
+                  DEFAULT_EMAIL_PROVIDER="gmail"
+                </div>
+                <p className="text-xs text-slate-600 mt-2">
+                  💡 Ideal para sistema de tickets y comunicación directa con miembros
+                </p>
               </div>
 
               <Separator />

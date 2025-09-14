@@ -31,6 +31,7 @@ import {
   AlertTriangle,
   RefreshCw
 } from 'lucide-react'
+import { GmailConfig } from '@/components/integrations/gmail-config'
 
 interface IntegrationsClientProps {
   userRole: string
@@ -291,6 +292,7 @@ export function IntegrationsClient({ userRole }: IntegrationsClientProps) {
         <TabsList>
           <TabsTrigger value="test">Probar Servicios</TabsTrigger>
           <TabsTrigger value="bulk">Envío Masivo</TabsTrigger>
+          <TabsTrigger value="gmail">Gmail API</TabsTrigger>
           <TabsTrigger value="config">Configuración</TabsTrigger>
         </TabsList>
 
@@ -483,6 +485,10 @@ export function IntegrationsClient({ userRole }: IntegrationsClientProps) {
           </Card>
         </TabsContent>
 
+        <TabsContent value="gmail" className="space-y-4">
+          <GmailConfig userRole={userRole} />
+        </TabsContent>
+
         <TabsContent value="config" className="space-y-4">
           <Card>
             <CardHeader>
@@ -507,6 +513,27 @@ export function IntegrationsClient({ userRole }: IntegrationsClientProps) {
                   MAILGUN_FROM_EMAIL="noreply@tudominio.com"<br/>
                   ENABLE_MAILGUN="true"
                 </div>
+              </div>
+
+              <Separator />
+
+              {/* Gmail Config */}
+              <div>
+                <h3 className="font-medium mb-2 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Gmail API Service
+                </h3>
+                <div className="bg-slate-100 p-3 rounded text-sm font-mono text-slate-700">
+                  GMAIL_CLIENT_ID="your-client-id.googleusercontent.com"<br/>
+                  GMAIL_CLIENT_SECRET="your-client-secret"<br/>
+                  GMAIL_REFRESH_TOKEN="your-refresh-token"<br/>
+                  GMAIL_FROM_EMAIL="soporte@tudominio.com"<br/>
+                  ENABLE_GMAIL="true"<br/>
+                  DEFAULT_EMAIL_PROVIDER="gmail"
+                </div>
+                <p className="text-xs text-slate-600 mt-2">
+                  💡 Configure Gmail API para el sistema de tickets y comunicación con miembros
+                </p>
               </div>
 
               <Separator />

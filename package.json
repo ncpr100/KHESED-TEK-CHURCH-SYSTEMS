@@ -99,6 +99,7 @@
     "facebook-nodejs-business-sdk": "^23.0.1",
     "formik": "2.4.5",
     "framer-motion": "10.18.0",
+    "googleapis": "^159.0.0",
     "gray-matter": "4.0.3",
     "helmet": "^8.1.0",
     "input-otp": "1.2.4",

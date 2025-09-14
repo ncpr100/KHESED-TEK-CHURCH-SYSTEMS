@@ -1,5 +1,6 @@
 
 import { mailgunService, EmailMessage } from './mailgun'
+import { gmailService, GmailMessage } from './gmail'
 import { twilioService, SMSMessage } from './twilio'
 import { whatsappBusinessService, WhatsAppBusinessMessage } from './whatsapp'
 
@@ -35,16 +36,35 @@ export interface BulkMessageResult {
 }
 
 export class CommunicationService {
-  async sendEmail(message: EmailMessage): Promise<{ success: boolean; messageId?: string; error?: string; provider: string }> {
+  async sendEmail(message: EmailMessage | GmailMessage): Promise<{ success: boolean; messageId?: string; error?: string; provider: string }> {
     const defaultProvider = process.env.DEFAULT_EMAIL_PROVIDER || 'internal'
     
+    // Try Gmail first if enabled and configured
+    if (defaultProvider === 'gmail' && gmailService.getStatus().enabled) {
+      const result = await gmailService.sendEmail(message as GmailMessage)
+      return { ...result, provider: 'gmail' }
+    }
+    
+    // Try Mailgun if enabled
     if (defaultProvider === 'mailgun' && mailgunService.getStatus().enabled) {
-      const result = await mailgunService.sendEmail(message)
+      const result = await mailgunService.sendEmail(message as EmailMessage)
       return { ...result, provider: 'mailgun' }
     }
     
+    // Auto-fallback: Try Gmail if Mailgun is not available
+    if (gmailService.getStatus().enabled && defaultProvider !== 'gmail') {
+      const result = await gmailService.sendEmail(message as GmailMessage)
+      return { ...result, provider: 'gmail-fallback' }
+    }
+    
+    // Auto-fallback: Try Mailgun if Gmail is not available  
+    if (mailgunService.getStatus().enabled && defaultProvider !== 'mailgun') {
+      const result = await mailgunService.sendEmail(message as EmailMessage)
+      return { ...result, provider: 'mailgun-fallback' }
+    }
+    
     // Fallback to internal email system (existing implementation)
-    return this.sendInternalEmail(message)
+    return this.sendInternalEmail(message as EmailMessage)
   }
 
   async sendSMS(message: SMSMessage): Promise<{ success: boolean; messageId?: string; error?: string; provider: string }> {
@@ -82,7 +102,7 @@ export class CommunicationService {
     }
   }
 
-  async sendBulkEmail(messages: EmailMessage[]): Promise<BulkMessageResult> {
+  async sendBulkEmail(messages: (EmailMessage | GmailMessage)[]): Promise<BulkMessageResult> {
     const results: BulkMessageResult = {
       success: false,
       total: messages.length,
@@ -175,14 +195,23 @@ export class CommunicationService {
 
   getStatus(): CommunicationStatus {
     const mailgunStatus = mailgunService.getStatus()
+    const gmailStatus = gmailService.getStatus()
     const twilioStatus = twilioService.getStatus()
     const whatsappStatus = whatsappBusinessService.getStatus()
 
+    // Determine which email provider is primary
+    const primaryEmailProvider = process.env.DEFAULT_EMAIL_PROVIDER || 'internal'
+    const emailEnabled = gmailStatus.enabled || mailgunStatus.enabled
+    const emailProvider = gmailStatus.enabled && primaryEmailProvider === 'gmail' ? 'gmail' :
+                         mailgunStatus.enabled && primaryEmailProvider === 'mailgun' ? 'mailgun' :
+                         gmailStatus.enabled ? 'gmail' :
+                         mailgunStatus.enabled ? 'mailgun' : 'internal'
+
     return {
       email: {
-        enabled: mailgunStatus.enabled,
-        provider: mailgunStatus.enabled ? 'mailgun' : 'internal',
-        configured: mailgunStatus.configured
+        enabled: emailEnabled,
+        provider: emailProvider,
+        configured: gmailStatus.configured || mailgunStatus.configured
       },
       sms: {
         enabled: twilioStatus.enabled,
