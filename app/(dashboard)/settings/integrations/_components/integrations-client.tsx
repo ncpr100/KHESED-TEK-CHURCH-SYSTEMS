@@ -31,6 +31,7 @@ import {
   AlertTriangle,
   RefreshCw
 } from 'lucide-react'
+import { GmailConfig } from '@/components/integrations/gmail-config'
 
 interface IntegrationsClientProps {
   userRole: string
@@ -291,6 +292,7 @@ export function IntegrationsClient({ userRole }: IntegrationsClientProps) {
         <TabsList>
           <TabsTrigger value="test">Probar Servicios</TabsTrigger>
           <TabsTrigger value="bulk">Envío Masivo</TabsTrigger>
+          <TabsTrigger value="gmail">Gmail API</TabsTrigger>
           <TabsTrigger value="config">Configuración</TabsTrigger>
         </TabsList>
 
@@ -481,6 +483,10 @@ export function IntegrationsClient({ userRole }: IntegrationsClientProps) {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="gmail" className="space-y-4">
+          <GmailConfig userRole={userRole} />
         </TabsContent>
 
         <TabsContent value="config" className="space-y-4">
