@@ -42,6 +42,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
   },
   secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret-change-in-production' : undefined),
+  debug: process.env.NODE_ENV === 'development',
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -50,66 +51,94 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        console.log('[NextAuth] Authorization attempt for:', credentials?.email)
+        
         if (!credentials?.email || !credentials?.password) {
+          console.log('[NextAuth] Missing credentials')
           return null
         }
 
-        const user = await db.user.findUnique({
-          where: {
-            email: credentials.email
-          },
-          include: {
-            church: true
+        try {
+          const user = await db.user.findUnique({
+            where: {
+              email: credentials.email
+            },
+            include: {
+              church: true
+            }
+          })
+
+          if (!user) {
+            console.log('[NextAuth] User not found:', credentials.email)
+            return null
           }
-        })
 
-        if (!user || !user.password) {
+          if (!user.password) {
+            console.log('[NextAuth] User has no password set:', credentials.email)
+            return null
+          }
+
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          )
+
+          if (!isPasswordValid) {
+            console.log('[NextAuth] Invalid password for:', credentials.email)
+            return null
+          }
+
+          console.log('[NextAuth] Successful authentication for:', credentials.email)
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            churchId: user.churchId,
+            church: user.church
+          }
+        } catch (error) {
+          console.error('[NextAuth] Database error during authentication:', error)
           return null
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
-
-        if (!isPasswordValid) {
-          return null
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          churchId: user.churchId,
-          church: user.church
         }
       }
     })
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        return {
-          ...token,
-          id: user.id,
-          role: user.role,
-          churchId: user.churchId,
-          church: user.church,
+      try {
+        if (user) {
+          console.log('[NextAuth] JWT callback - creating token for user:', user.email)
+          return {
+            ...token,
+            id: user.id,
+            role: user.role,
+            churchId: user.churchId,
+            church: user.church,
+          }
         }
+        return token
+      } catch (error) {
+        console.error('[NextAuth] JWT callback error:', error)
+        return token
       }
-      return token
     },
     async session({ session, token }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id as string,
-          role: token.role,
-          churchId: token.churchId,
-          church: token.church,
+      try {
+        console.log('[NextAuth] Session callback for user:', session.user?.email)
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            id: token.id as string,
+            role: token.role,
+            churchId: token.churchId,
+            church: token.church,
+          }
         }
+      } catch (error) {
+        console.error('[NextAuth] Session callback error:', error)
+        return session
       }
     },
   }
