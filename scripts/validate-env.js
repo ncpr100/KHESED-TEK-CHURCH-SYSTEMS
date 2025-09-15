@@ -8,6 +8,10 @@
  * and setup instructions for missing configuration.
  */
 
+// Load environment variables
+require('dotenv').config({ path: '.env.local' })
+require('dotenv').config({ path: '.env' })
+
 const requiredEnvVars = {
   NEXTAUTH_SECRET: {
     description: 'Secret key for NextAuth.js JWT encryption',
