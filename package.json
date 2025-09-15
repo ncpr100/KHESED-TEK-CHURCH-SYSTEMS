@@ -3,9 +3,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "build": "node scripts/validate-env.js && next build",
+    "start": "node scripts/validate-env.js && next start",
+    "lint": "next lint",
+    "validate-env": "node scripts/validate-env.js"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"
