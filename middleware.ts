@@ -107,6 +107,24 @@ export async function middleware(request: NextRequest) {
   const isProtectedApiRoute = PROTECTED_API_ROUTES.some(route => pathname.startsWith(route));
 
   if (isProtectedRoute || isProtectedApiRoute) {
+    // Check if NextAuth is properly configured
+    if (!process.env.NEXTAUTH_SECRET) {
+      console.error('[Middleware] NEXTAUTH_SECRET is not configured');
+      
+      if (isProtectedApiRoute) {
+        return NextResponse.json(
+          { 
+            error: 'Server configuration error: NEXTAUTH_SECRET not configured',
+            code: 'NO_SECRET' 
+          },
+          { status: 500 }
+        );
+      }
+      
+      // For protected pages, show a configuration error page
+      return NextResponse.redirect(new URL('/auth/configuration-error', request.url));
+    }
+
     const token = await getToken({ 
       req: request, 
       secret: process.env.NEXTAUTH_SECRET 

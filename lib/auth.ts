@@ -5,6 +5,34 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { db } from "./db"
 import bcrypt from "bcryptjs"
 
+// Validate required environment variables
+function validateEnvironment() {
+  const requiredVars = {
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    DATABASE_URL: process.env.DATABASE_URL,
+  }
+
+  const missing = Object.entries(requiredVars)
+    .filter(([key, value]) => !value)
+    .map(([key]) => key)
+
+  if (missing.length > 0) {
+    const error = `Missing required environment variables: ${missing.join(', ')}`
+    console.error('[NextAuth Configuration Error]', error)
+    console.error('Please check the .env.example file and DEPLOYMENT.md for setup instructions')
+    
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(error)
+    } else {
+      console.warn('[NextAuth Warning] Using default values for development. Set proper values for production.')
+    }
+  }
+}
+
+// Validate environment on import
+validateEnvironment()
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
   session: {
@@ -13,6 +41,7 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/auth/signin",
   },
+  secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret-change-in-production' : undefined),
   providers: [
     CredentialsProvider({
       name: "credentials",
