@@ -59,6 +59,9 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          // Test database connection first
+          await db.$connect()
+          
           const user = await db.user.findUnique({
             where: {
               email: credentials.email
@@ -98,7 +101,26 @@ export const authOptions: NextAuthOptions = {
             church: user.church
           }
         } catch (error) {
-          console.error('[NextAuth] Database error during authentication:', error)
+          // Provide more specific error logging for different types of database errors
+          if (error.name === 'PrismaClientInitializationError') {
+            console.error('[NextAuth] Prisma client initialization failed:', {
+              message: error.message,
+              errorCode: error.errorCode,
+              clientVersion: error.clientVersion
+            })
+          } else if (error.name === 'PrismaClientKnownRequestError') {
+            console.error('[NextAuth] Prisma request error:', {
+              code: error.code,
+              message: error.message,
+              meta: error.meta
+            })
+          } else {
+            console.error('[NextAuth] Database error during authentication:', {
+              name: error.name,
+              message: error.message,
+              stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            })
+          }
           return null
         }
       }

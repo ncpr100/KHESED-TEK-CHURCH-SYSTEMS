@@ -3,8 +3,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
-    "build": "node scripts/validate-env.js && next build",
+    "build": "node scripts/validate-env.js && npx prisma generate && next build",
     "start": "node scripts/validate-env.js && next start",
+    "railway:build": "npx prisma generate && node scripts/validate-env.js && next build",
+    "railway:start": "./scripts/railway-deploy.sh",
+    "postinstall": "npx prisma generate",
     "lint": "next lint",
     "validate-env": "node scripts/validate-env.js"
   },
