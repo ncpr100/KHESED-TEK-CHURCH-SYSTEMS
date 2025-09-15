@@ -109,19 +109,36 @@ export default function SupportSettingsClient({ user }: Props) {
         body: JSON.stringify(contactInfo)
       })
 
+      console.log('🔍 Response status:', response.status, response.statusText)
+
       if (!response.ok) {
         const result = await response.json()
+        console.error('❌ API Error Response:', result)
         throw new Error(result.error || `HTTP ${response.status}: Error al actualizar`)
       }
 
       const result = await response.json()
+      console.log('✅ API Success Response:', result)
       
       // SUCCESS: Show notification and update UI
       toast({
         title: "✅ Cambios Guardados",
-        description: "La información de contacto se actualizó exitosamente",
-        duration: 5000
+        description: result.message || "La información de contacto se actualizó exitosamente",
+        duration: 5000,
+        variant: result.warning ? "destructive" : "default"
       })
+      
+      // Show additional warning if database is not available
+      if (result.warning) {
+        setTimeout(() => {
+          toast({
+            title: "⚠️ Advertencia",
+            description: result.warning,
+            duration: 8000,
+            variant: "destructive"
+          })
+        }, 1000)
+      }
       
       // Force refresh for ContactInfoCard components across all tabs
       localStorage.setItem('contact-info-updated', Date.now().toString())
