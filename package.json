@@ -5,7 +5,15 @@
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:setup": "node scripts/setup-db.js",
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate deploy",
+    "db:studio": "npx prisma studio",
+    "db:reset": "npx prisma migrate reset",
+    "env:validate": "node scripts/validate-env.js",
+    "setup": "npm run env:validate && npm run db:setup",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"
