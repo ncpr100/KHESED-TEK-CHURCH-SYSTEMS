@@ -24,9 +24,24 @@ const requiredEnvVars = {
     validation: (value) => value && (value.startsWith('http://') || value.startsWith('https://'))
   },
   DATABASE_URL: {
-    description: 'PostgreSQL database connection string',
-    example: 'postgresql://username:password@localhost:5432/database_name',
-    validation: (value) => value && value.startsWith('postgresql://')
+    description: 'PostgreSQL database connection string with Railway optimization',
+    example: 'postgresql://username:password@localhost:5432/database_name?connection_limit=20&pool_timeout=60',
+    validation: (value) => {
+      if (!value || !value.startsWith('postgresql://')) {
+        return false
+      }
+      
+      // Check for Railway optimization parameters
+      const hasConnectionLimit = value.includes('connection_limit=')
+      const hasPoolTimeout = value.includes('pool_timeout=')
+      
+      if (!hasConnectionLimit || !hasPoolTimeout) {
+        console.warn('⚠️  DATABASE_URL missing Railway optimization parameters')
+        console.warn('   Consider adding: ?connection_limit=20&pool_timeout=60&connect_timeout=30')
+      }
+      
+      return true
+    }
   }
 }
 

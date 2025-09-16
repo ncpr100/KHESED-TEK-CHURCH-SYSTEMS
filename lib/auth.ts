@@ -2,8 +2,8 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import { db } from "./db"
-import bcrypt from "bcryptjs"
+import { db, checkDatabaseHealth } from "./db"
+import * as bcrypt from "bcryptjs"
 
 // Validate required environment variables
 function validateEnvironment() {
@@ -51,16 +51,29 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log('[NextAuth] Authorization attempt for:', credentials?.email)
+        const authAttemptId = Math.random().toString(36).substring(7)
+        console.log(`[NextAuth:${authAttemptId}] Authorization attempt for:`, credentials?.email)
         
         if (!credentials?.email || !credentials?.password) {
-          console.log('[NextAuth] Missing credentials')
+          console.log(`[NextAuth:${authAttemptId}] Missing credentials`)
           return null
         }
 
         try {
-          // Test database connection first
-          await db.$connect()
+          // Check database health before attempting authentication
+          console.log(`[NextAuth:${authAttemptId}] Checking database health...`)
+          const healthCheck = await checkDatabaseHealth()
+          
+          if (!healthCheck.healthy) {
+            console.error(`[NextAuth:${authAttemptId}] Database health check failed:`, healthCheck.message)
+            // In production, we might want to return a specific error or retry
+            if (process.env.NODE_ENV === 'production') {
+              console.error(`[NextAuth:${authAttemptId}] Production mode: Database unavailable, rejecting authentication`)
+              return null
+            }
+          } else {
+            console.log(`[NextAuth:${authAttemptId}] Database health check passed`)
+          }
           
           const user = await db.user.findUnique({
             where: {
@@ -72,12 +85,12 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (!user) {
-            console.log('[NextAuth] User not found:', credentials.email)
+            console.log(`[NextAuth:${authAttemptId}] User not found:`, credentials.email)
             return null
           }
 
           if (!user.password) {
-            console.log('[NextAuth] User has no password set:', credentials.email)
+            console.log(`[NextAuth:${authAttemptId}] User has no password set:`, credentials.email)
             return null
           }
 
@@ -87,11 +100,11 @@ export const authOptions: NextAuthOptions = {
           )
 
           if (!isPasswordValid) {
-            console.log('[NextAuth] Invalid password for:', credentials.email)
+            console.log(`[NextAuth:${authAttemptId}] Invalid password for:`, credentials.email)
             return null
           }
 
-          console.log('[NextAuth] Successful authentication for:', credentials.email)
+          console.log(`[NextAuth:${authAttemptId}] Successful authentication for:`, credentials.email)
           return {
             id: user.id,
             email: user.email,
@@ -100,27 +113,48 @@ export const authOptions: NextAuthOptions = {
             churchId: user.churchId,
             church: user.church
           }
-        } catch (error) {
-          // Provide more specific error logging for different types of database errors
+        } catch (error: any) {
+          // Enhanced error logging with specific handling for different error types
+          const errorInfo = {
+            attemptId: authAttemptId,
+            email: credentials.email,
+            timestamp: new Date().toISOString(),
+            errorName: error.name,
+            errorMessage: error.message,
+            errorCode: error.code || error.errorCode,
+          }
+
           if (error.name === 'PrismaClientInitializationError') {
-            console.error('[NextAuth] Prisma client initialization failed:', {
-              message: error.message,
-              errorCode: error.errorCode,
-              clientVersion: error.clientVersion
+            console.error(`[NextAuth:${authAttemptId}] Prisma client initialization failed:`, {
+              ...errorInfo,
+              clientVersion: error.clientVersion,
+              errorCode: error.errorCode
             })
+            
+            // Log specific Railway connection issues
+            if (error.message?.includes('connection pool') || error.errorCode === 'P2024') {
+              console.error(`[NextAuth:${authAttemptId}] Connection pool issue detected - this may indicate Railway database limits`)
+            }
+            
           } else if (error.name === 'PrismaClientKnownRequestError') {
-            console.error('[NextAuth] Prisma request error:', {
-              code: error.code,
-              message: error.message,
+            console.error(`[NextAuth:${authAttemptId}] Prisma request error:`, {
+              ...errorInfo,
               meta: error.meta
             })
+            
+          } else if (error.code === 'P2024') {
+            console.error(`[NextAuth:${authAttemptId}] Connection pool timeout (P2024):`, {
+              ...errorInfo,
+              recommendation: 'Consider increasing connection pool size or reducing concurrent requests'
+            })
+            
           } else {
-            console.error('[NextAuth] Database error during authentication:', {
-              name: error.name,
-              message: error.message,
-              stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            console.error(`[NextAuth:${authAttemptId}] Database error during authentication:`, {
+              ...errorInfo,
+              stack: process.env.NODE_ENV === 'development' ? error.stack : 'Stack trace hidden in production'
             })
           }
+          
           return null
         }
       }
