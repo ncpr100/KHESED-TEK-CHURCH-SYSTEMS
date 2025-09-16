@@ -3,6 +3,7 @@ import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { db } from "./db"
+import { logger } from "./logger"
 import bcrypt from "bcryptjs"
 
 // Validate required environment variables
@@ -13,20 +14,33 @@ function validateEnvironment() {
     DATABASE_URL: process.env.DATABASE_URL,
   }
 
+  logger.railwayInfo('auth', 'Validating NextAuth environment configuration')
+
   const missing = Object.entries(requiredVars)
     .filter(([key, value]) => !value)
     .map(([key]) => key)
 
+  Object.entries(requiredVars).forEach(([key, value]) => {
+    logger.envValidation(key, value ? 'valid' : 'missing', value)
+  })
+
   if (missing.length > 0) {
     const error = `Missing required environment variables: ${missing.join(', ')}`
-    console.error('[NextAuth Configuration Error]', error)
-    console.error('Please check the .env.example file and DEPLOYMENT.md for setup instructions')
+    logger.railwayError('auth', 'NextAuth configuration incomplete', new Error(error), {
+      missingVars: missing,
+      environment: process.env.NODE_ENV
+    })
     
     if (process.env.NODE_ENV === 'production') {
       throw new Error(error)
     } else {
-      console.warn('[NextAuth Warning] Using default values for development. Set proper values for production.')
+      logger.warn('Using default values for development. Set proper values for production.', {
+        service: 'auth',
+        environment: 'development'
+      })
     }
+  } else {
+    logger.success('All NextAuth environment variables configured correctly')
   }
 }
 
@@ -51,10 +65,15 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log('[NextAuth] Authorization attempt for:', credentials?.email)
+        logger.authOperation('login-attempt', credentials?.email, true, {
+          hasEmail: !!credentials?.email,
+          hasPassword: !!credentials?.password
+        })
         
         if (!credentials?.email || !credentials?.password) {
-          console.log('[NextAuth] Missing credentials')
+          logger.authOperation('login-failed', credentials?.email, false, {
+            reason: 'missing-credentials'
+          })
           return null
         }
 
@@ -72,12 +91,16 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (!user) {
-            console.log('[NextAuth] User not found:', credentials.email)
+            logger.authOperation('login-failed', credentials.email, false, {
+              reason: 'user-not-found'
+            })
             return null
           }
 
           if (!user.password) {
-            console.log('[NextAuth] User has no password set:', credentials.email)
+            logger.authOperation('login-failed', credentials.email, false, {
+              reason: 'no-password-set'
+            })
             return null
           }
 
@@ -87,11 +110,18 @@ export const authOptions: NextAuthOptions = {
           )
 
           if (!isPasswordValid) {
-            console.log('[NextAuth] Invalid password for:', credentials.email)
+            logger.authOperation('login-failed', credentials.email, false, {
+              reason: 'invalid-password'
+            })
             return null
           }
 
-          console.log('[NextAuth] Successful authentication for:', credentials.email)
+          logger.authOperation('login-success', credentials.email, true, {
+            userId: user.id,
+            role: user.role,
+            churchId: user.churchId
+          })
+          
           return {
             id: user.id,
             email: user.email,
@@ -102,23 +132,28 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           // Provide more specific error logging for different types of database errors
-          if (error.name === 'PrismaClientInitializationError') {
-            console.error('[NextAuth] Prisma client initialization failed:', {
-              message: error.message,
-              errorCode: error.errorCode,
-              clientVersion: error.clientVersion
-            })
-          } else if (error.name === 'PrismaClientKnownRequestError') {
-            console.error('[NextAuth] Prisma request error:', {
-              code: error.code,
-              message: error.message,
-              meta: error.meta
-            })
+          if (error && typeof error === 'object' && 'name' in error) {
+            const err = error as any
+            if (err.name === 'PrismaClientInitializationError') {
+              logger.railwayError('auth', 'Prisma client initialization failed during auth', error, {
+                errorCode: err.errorCode,
+                clientVersion: err.clientVersion,
+                email: credentials.email
+              })
+            } else if (err.name === 'PrismaClientKnownRequestError') {
+              logger.railwayError('auth', 'Prisma request error during auth', error, {
+                code: err.code,
+                meta: err.meta,
+                email: credentials.email
+              })
+            } else {
+              logger.railwayError('auth', 'Database error during authentication', error, {
+                email: credentials.email
+              })
+            }
           } else {
-            console.error('[NextAuth] Database error during authentication:', {
-              name: error.name,
-              message: error.message,
-              stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            logger.railwayError('auth', 'Unknown error during authentication', error, {
+              email: credentials.email
             })
           }
           return null
@@ -130,7 +165,11 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       try {
         if (user) {
-          console.log('[NextAuth] JWT callback - creating token for user:', user.email)
+          logger.debug('JWT callback - creating token for user', {
+            service: 'auth',
+            email: user.email,
+            userId: user.id
+          })
           return {
             ...token,
             id: user.id,
@@ -141,13 +180,20 @@ export const authOptions: NextAuthOptions = {
         }
         return token
       } catch (error) {
-        console.error('[NextAuth] JWT callback error:', error)
+        logger.railwayError('auth', 'JWT callback error', error, {
+          hasUser: !!user,
+          tokenId: token?.id
+        })
         return token
       }
     },
     async session({ session, token }) {
       try {
-        console.log('[NextAuth] Session callback for user:', session.user?.email)
+        logger.debug('Session callback for user', {
+          service: 'auth',
+          email: session.user?.email,
+          tokenId: token?.id
+        })
         return {
           ...session,
           user: {
@@ -159,7 +205,9 @@ export const authOptions: NextAuthOptions = {
           }
         }
       } catch (error) {
-        console.error('[NextAuth] Session callback error:', error)
+        logger.railwayError('auth', 'Session callback error', error, {
+          email: session.user?.email
+        })
         return session
       }
     },
