@@ -58,13 +58,27 @@ export default function SignInPage() {
       })
 
       if (result?.error) {
-        setError('Email o contraseña incorrectos')
+        // Enhanced error handling for common authentication issues
+        if (result.error === 'CredentialsSignin') {
+          setError('Email o contraseña incorrectos. Verifica tus credenciales.')
+        } else if (result.error === 'DatabaseConnection') {
+          setError('Problema de conexión con la base de datos. Intenta nuevamente en unos momentos.')
+        } else if (result.error === 'Configuration') {
+          setError('Error de configuración del servidor. Contacta al administrador.')
+        } else {
+          setError(`Error de autenticación: ${result.error}`)
+        }
+        
+        // Log error for debugging
+        console.error('[SignIn] Authentication error:', result.error)
       } else if (result?.ok) {
         // Let useEffect handle the redirect to avoid double navigation
+        console.log('[SignIn] Authentication successful for:', email)
         return
       }
-    } catch (error) {
-      setError('Error al iniciar sesión')
+    } catch (error: any) {
+      console.error('[SignIn] Unexpected error:', error)
+      setError('Error inesperado al iniciar sesión. Verifica tu conexión e intenta nuevamente.')
     } finally {
       setIsLoading(false)
     }
