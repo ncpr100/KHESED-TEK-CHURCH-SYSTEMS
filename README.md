@@ -33,6 +33,30 @@ openssl rand -base64 32
 
 **📖 For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)**
 
+## 🚂 Railway Deployment & Logging
+
+This system includes enhanced logging specifically designed for Railway deployments:
+
+### Railway-Optimized Features
+- **Structured logging** with Railway-friendly JSON context
+- **Service-specific prefixes** for easy log filtering (🚂 RAILWAY, 🔍 INFO, ✅ SUCCESS, ❌ ERROR)
+- **Automatic Railway environment detection** and configuration validation
+- **Performance monitoring** with memory usage, uptime, and query tracking
+- **Enhanced error handling** with detailed Prisma error categorization
+- **Build information logging** with git commit tracking
+
+### Quick Railway Setup
+```bash
+# Railway deployment with enhanced logging
+npm run railway:build
+npm run railway:start
+
+# Test logging features
+node scripts/demo-logger.js
+```
+
+**📊 For comprehensive Railway logging documentation, see [RAILWAY_LOGGING_GUIDE.md](./RAILWAY_LOGGING_GUIDE.md)**
+
 ## Features
 
 - **Member Management**: Complete congregation database with profiles, contact information, and membership tracking
