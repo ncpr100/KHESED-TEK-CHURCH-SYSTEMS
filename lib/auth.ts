@@ -66,6 +66,13 @@ export const authOptions: NextAuthOptions = {
           
           if (!healthCheck.healthy) {
             console.error(`[NextAuth:${authAttemptId}] Database health check failed:`, healthCheck.message)
+            console.error(`[NextAuth:${authAttemptId}] Error code: ${healthCheck.code || 'Unknown'}`)
+            
+            // Enhanced error handling for Railway database issues
+            if (healthCheck.code === 'P2024') {
+              console.error(`[NextAuth:${authAttemptId}] Connection pool timeout detected - Railway database may be overloaded`)
+            }
+            
             // In production, we might want to return a specific error or retry
             if (process.env.NODE_ENV === 'production') {
               console.error(`[NextAuth:${authAttemptId}] Production mode: Database unavailable, rejecting authentication`)

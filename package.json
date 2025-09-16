@@ -11,7 +11,10 @@
     "postinstall": "npx prisma generate",
     "lint": "next lint",
     "validate-env": "node scripts/validate-env.js",
-    "test-prisma": "node scripts/test-prisma-config.js"
+    "test-prisma": "node scripts/test-prisma-config.js",
+    "restore-super-admin": "npx tsx scripts/restore-super-admin.ts",
+    "test-railway-connection": "npx tsx scripts/test-railway-connection.ts",
+    "validate-fix": "npx tsx scripts/validate-fix.ts"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"

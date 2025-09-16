@@ -115,7 +115,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.json(
           { 
             error: 'Server configuration error: NEXTAUTH_SECRET not configured',
-            code: 'NO_SECRET' 
+            code: 'NO_SECRET',
+            details: 'Authentication system is not properly configured. Please check server configuration.'
           },
           { status: 500 }
         );
@@ -125,22 +126,53 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/configuration-error', request.url));
     }
 
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.NEXTAUTH_SECRET 
-    });
+    // Enhanced token retrieval with better error handling
+    try {
+      const token = await getToken({ 
+        req: request, 
+        secret: process.env.NEXTAUTH_SECRET 
+      });
 
-    if (!token) {
+      if (!token) {
+        console.log(`[Middleware] No token found for ${pathname}`);
+        
+        if (isProtectedApiRoute) {
+          return NextResponse.json(
+            { 
+              error: 'No autorizado',
+              code: 'NO_TOKEN',
+              details: 'No se encontró token de autenticación válido' 
+            },
+            { status: 401 }
+          );
+        }
+        
+        // Redirect to signin for protected pages
+        const signInUrl = new URL('/auth/signin', request.url);
+        signInUrl.searchParams.set('callbackUrl', pathname);
+        return NextResponse.redirect(signInUrl);
+      }
+
+      // Log successful authentication for debugging
+      console.log(`[Middleware] Authenticated user: ${token.email} (${token.role}) accessing ${pathname}`);
+
+    } catch (error) {
+      console.error('[Middleware] Error retrieving token:', error);
+      
       if (isProtectedApiRoute) {
         return NextResponse.json(
-          { error: 'No autorizado' },
-          { status: 401 }
+          { 
+            error: 'Error de autenticación',
+            code: 'TOKEN_ERROR',
+            details: 'Error al verificar token de autenticación'
+          },
+          { status: 500 }
         );
       }
       
-      // Redirect to signin for protected pages
+      // Redirect to signin on token error
       const signInUrl = new URL('/auth/signin', request.url);
-      signInUrl.searchParams.set('callbackUrl', pathname);
+      signInUrl.searchParams.set('error', 'TokenError');
       return NextResponse.redirect(signInUrl);
     }
 
