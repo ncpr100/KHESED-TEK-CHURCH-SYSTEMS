@@ -7,9 +7,11 @@
     "start": "node scripts/validate-env.js && next start",
     "railway:build": "npx prisma generate && node scripts/validate-env.js && next build",
     "railway:start": "./scripts/railway-deploy.sh",
+    "railway:test-db": "node scripts/test-railway-db.js",
     "postinstall": "npx prisma generate",
     "lint": "next lint",
-    "validate-env": "node scripts/validate-env.js"
+    "validate-env": "node scripts/validate-env.js",
+    "test-prisma": "node scripts/test-prisma-config.js"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"
