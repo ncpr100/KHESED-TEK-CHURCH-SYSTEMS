@@ -1,6 +1,10 @@
 #!/usr/bin/env tsx
 
 import { PrismaClient } from '@prisma/client'
+import { config } from 'dotenv'
+
+// Load environment variables from .env.local for development
+config({ path: '.env.local' })
 
 async function testRailwayConnection() {
   console.log('🚂 Testing Railway Database Connection...\n')
