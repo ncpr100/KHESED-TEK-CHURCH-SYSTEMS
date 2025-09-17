@@ -80,16 +80,41 @@ function validateEnvironment() {
     console.warn('   Generate a secure secret with: openssl rand -base64 32\n')
   }
 
-  if (process.env.NEXTAUTH_URL?.includes('localhost') && process.env.NODE_ENV === 'production') {
+  // Railway-specific validation: Allow Railway domains and internal URLs
+  const isRailwayDomain = process.env.NEXTAUTH_URL?.includes('railway.app') || 
+                         process.env.NEXTAUTH_URL?.includes('railway.internal')
+  
+  if (process.env.NEXTAUTH_URL?.includes('localhost') && 
+      process.env.NODE_ENV === 'production' && 
+      !isRailwayDomain) {
     warnings.push('⚠️  NEXTAUTH_URL points to localhost in production')
     console.warn('⚠️  NEXTAUTH_URL is set to localhost in production environment')
     console.warn('   Update to your production domain\n')
   }
 
-  if (process.env.DATABASE_URL?.includes('localhost') && process.env.NODE_ENV === 'production') {
+  // Railway-specific validation: Allow Railway database URLs
+  const isRailwayDatabase = process.env.DATABASE_URL?.includes('railway.app') || 
+                           process.env.DATABASE_URL?.includes('railway.internal')
+  
+  if (process.env.DATABASE_URL?.includes('localhost') && 
+      process.env.NODE_ENV === 'production' && 
+      !isRailwayDatabase) {
     warnings.push('⚠️  DATABASE_URL points to localhost in production')
     console.warn('⚠️  DATABASE_URL points to localhost in production environment')
     console.warn('   Update to your production database\n')
+  }
+
+  // Railway-specific checks
+  if (process.env.RAILWAY_ENVIRONMENT) {
+    console.log('🚂 Railway deployment detected')
+    console.log(`   Environment: ${process.env.RAILWAY_ENVIRONMENT}`)
+    
+    // Check for Railway-specific optimizations
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('connection_limit')) {
+      warnings.push('⚠️  DATABASE_URL missing Railway connection pool optimization')
+      console.warn('⚠️  Consider adding connection pool parameters for Railway:')
+      console.warn('   ?connection_limit=20&pool_timeout=60&connect_timeout=30\n')
+    }
   }
 
   // Summary

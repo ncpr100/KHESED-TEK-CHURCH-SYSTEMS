@@ -72,27 +72,41 @@ echo "✅ Prisma client generated successfully"
 echo "🔍 Validating environment configuration..."
 node scripts/validate-env.js
 
-if [ $? -ne 0 ]; then
-  echo "❌ Environment validation failed"
+# Allow warnings but fail on errors
+VALIDATION_EXIT_CODE=$?
+if [ $VALIDATION_EXIT_CODE -ne 0 ]; then
+  echo "❌ Environment validation failed with critical errors"
   exit 1
 fi
 
-echo "✅ Environment validation passed"
+echo "✅ Environment validation completed"
 
-# Test database connection if DATABASE_URL is available
+# Test database connection if DATABASE_URL is available (non-blocking)
 if [ -n "$DATABASE_URL" ]; then
-  check_database_connection
+  echo "🔍 Testing database connectivity (non-blocking)..."
+  if check_database_connection; then
+    echo "✅ Database connection test passed"
+  else
+    echo "⚠️  Database connectivity issues - will retry during runtime"
+  fi
 else
   echo "⚠️  DATABASE_URL not set - skipping connection test"
 fi
 
 # Display deployment information
-echo "📊 Deployment Information:"
+echo "📊 Railway Deployment Information:"
 echo "   Node.js version: $(node --version)"
 echo "   NPM version: $(npm --version)"
 echo "   Platform: $(uname -m)"
-echo "   Environment: ${NODE_ENV:-development}"
+echo "   Environment: ${NODE_ENV:-production}"
+echo "   Railway Environment: ${RAILWAY_ENVIRONMENT:-unknown}"
+echo "   Build ID: ${RAILWAY_GIT_COMMIT_SHA:-unknown}"
 
-# Start the application
-echo "🌟 Starting application..."
+# Railway-specific optimizations
+echo "🚂 Setting Railway optimizations..."
+export NODE_OPTIONS="--max-old-space-size=4096"
+export DISABLE_ESLINT_PLUGIN=true
+
+# Start the application with error handling
+echo "🌟 Starting Railway application..."
 exec npm start

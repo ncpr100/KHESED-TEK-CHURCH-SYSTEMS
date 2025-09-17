@@ -5,16 +5,17 @@
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "node scripts/validate-env.js && npx prisma generate && next build",
     "start": "node scripts/validate-env.js && next start",
-    "railway:build": "npx prisma generate && node scripts/validate-env.js && next build",
+    "railway:build": "npx prisma generate && node scripts/railway-validate.js && next build",
     "railway:start": "./scripts/railway-deploy.sh",
     "railway:test-db": "node scripts/test-railway-db.js",
     "postinstall": "npx prisma generate",
     "lint": "next lint",
     "validate-env": "node scripts/validate-env.js",
+    "validate-railway": "node scripts/railway-validate.js",
     "test-prisma": "node scripts/test-prisma-config.js",
     "restore-super-admin": "npx tsx scripts/restore-super-admin.ts",
     "test-railway-connection": "npx tsx scripts/test-railway-connection.ts",
-    "validate-fix": "npx tsx scripts/validate-fix.ts"
+    "test-deployment-issues": "node scripts/test-deployment-issues.js"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"

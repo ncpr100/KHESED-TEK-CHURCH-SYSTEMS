@@ -67,7 +67,33 @@ const ROUTE_PERMISSIONS = {
 } as const;
 
 export async function middleware(request: NextRequest) {
+  // Railway-specific CORS and security headers
   const response = NextResponse.next();
+  
+  // Add Railway-optimized CORS headers
+  const origin = request.headers.get('origin');
+  const isRailwayDomain = origin?.includes('railway.app') || 
+                         origin?.includes('railway.internal') ||
+                         process.env.NEXTAUTH_URL?.includes('railway.app');
+  
+  // Set CORS headers for Railway deployment
+  if (isRailwayDomain || process.env.NODE_ENV === 'development') {
+    response.headers.set('Access-Control-Allow-Origin', origin || '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  // Railway-specific security headers
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
+  response.headers.set('X-Railway-Deployment', 'optimized');
+  
+  // Handle preflight requests
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: response.headers });
+  }
 
   // Add compression headers
   if (request.headers.get('accept-encoding')?.includes('gzip')) {

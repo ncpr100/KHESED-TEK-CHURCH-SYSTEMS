@@ -28,8 +28,14 @@ const createPrismaClient = () => {
     }
   })
 
-  // Enhanced connection error handling with retry logic
+  // Enhanced connection error handling with retry logic - only in runtime, not during build
   const connectWithRetry = async (maxRetries = 3, delay = 2000) => {
+    // Skip connection attempts during build process
+    if (process.env.NODE_ENV === 'production' && process.argv.includes('build')) {
+      console.log('[Prisma] Build mode detected - skipping database connection')
+      return
+    }
+    
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`[Prisma] Connection attempt ${attempt}/${maxRetries}`)
@@ -50,9 +56,9 @@ const createPrismaClient = () => {
         
         if (attempt === maxRetries) {
           console.error('[Prisma] All connection attempts failed. Database may be unavailable.')
-          // Don't throw in production to allow graceful degradation
-          if (process.env.NODE_ENV === 'production') {
-            console.error('[Prisma] Production mode: Continuing with potential database issues')
+          // Don't throw during build or in production to allow graceful degradation
+          if (process.env.NODE_ENV === 'production' || process.argv.includes('build')) {
+            console.error('[Prisma] Production/Build mode: Continuing with potential database issues')
           } else {
             throw error
           }
@@ -64,10 +70,12 @@ const createPrismaClient = () => {
     }
   }
 
-  // Attempt initial connection
-  connectWithRetry().catch((error) => {
-    console.error('[Prisma] Initial database connection failed:', error)
-  })
+  // Only attempt initial connection during runtime, not build
+  if (!process.argv.includes('build') && typeof window === 'undefined') {
+    connectWithRetry().catch((error) => {
+      console.error('[Prisma] Initial database connection failed:', error)
+    })
+  }
 
   // Add connection pool health monitoring with proper typing
   const originalQueryRaw = client.$queryRaw
